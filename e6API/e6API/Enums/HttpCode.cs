@@ -5,7 +5,7 @@
     Last Updated 0.1 03/17/21@1:07
 */
 
-namespace e6API.Enums
+namespace e6API
 {
     public enum StatusCode
     {

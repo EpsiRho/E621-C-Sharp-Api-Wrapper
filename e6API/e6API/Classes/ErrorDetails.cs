@@ -5,8 +5,6 @@
     Last Updated 0.1 03/17/21@1:07
 */
 
-using e6API.Enums;
-
 namespace e6API
 {
     public class ErrorDetails

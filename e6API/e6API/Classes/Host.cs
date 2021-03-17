@@ -5,8 +5,6 @@
     Last Updated 0.1 03/17/21@1:07
 */
 
-using e6API.Enums;
-using e6API.JSON_Classes;
 using Newtonsoft.Json;
 using RestSharp;
 using System;
@@ -188,10 +186,10 @@ namespace e6API
             }
 
             // Try to deserialize the json into a list of Posts
-            ListPostsJson json;
+            PostsHolder json;
             try
             {
-                json = JsonConvert.DeserializeObject<ListPostsJson>(response.Content);
+                json = JsonConvert.DeserializeObject<PostsHolder>(response.Content);
             }
             catch (Exception e)
             {
@@ -322,10 +320,10 @@ namespace e6API
             }
 
             // Try to deserialize the json into a list of Posts
-            ListPostsJson json;
+            PostsHolder json;
             try
             {
-                json = JsonConvert.DeserializeObject<ListPostsJson>(response.Content);
+                json = JsonConvert.DeserializeObject<PostsHolder>(response.Content);
             }
             catch (Exception e)
             {

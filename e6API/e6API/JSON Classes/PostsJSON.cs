@@ -8,7 +8,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace e6API.JSON_Classes
+namespace e6API
 {
     public class File
     {
@@ -106,7 +106,7 @@ namespace e6API.JSON_Classes
         public object duration { get; set; }
     }
 
-    public class ListPostsJson
+    public class PostsHolder
     {
         public List<Post> posts { get; set; }
     }
