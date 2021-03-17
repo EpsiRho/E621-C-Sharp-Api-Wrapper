@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31005.135
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "e6API", "e6API\e6API.csproj", "{C5AE48A2-225A-46BF-99FD-7AA8EBE9114D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C5AE48A2-225A-46BF-99FD-7AA8EBE9114D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C5AE48A2-225A-46BF-99FD-7AA8EBE9114D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C5AE48A2-225A-46BF-99FD-7AA8EBE9114D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C5AE48A2-225A-46BF-99FD-7AA8EBE9114D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B60F9A6A-1CEE-49AD-AE7B-DBFF1525F494}
+	EndGlobalSection
+EndGlobal
