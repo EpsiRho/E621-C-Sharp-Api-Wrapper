@@ -6,3 +6,4 @@ C:\Users\jhset\Documents\GitHub\E621-C-Sharp-Api-Wrapper\e6API\e6API\obj\Release
 C:\Users\jhset\Documents\GitHub\E621-C-Sharp-Api-Wrapper\e6API\e6API\obj\Release\netstandard2.0\e6API.csproj.CoreCompileInputs.cache
 C:\Users\jhset\Documents\GitHub\E621-C-Sharp-Api-Wrapper\e6API\e6API\obj\Release\netstandard2.0\e6API.dll
 C:\Users\jhset\Documents\GitHub\E621-C-Sharp-Api-Wrapper\e6API\e6API\obj\Release\netstandard2.0\e6API.pdb
+C:\Users\jhset\Documents\GitHub\E621-C-Sharp-Api-Wrapper\e6API\e6API\obj\Release\netstandard2.0\e6API.csprojAssemblyReference.cache
