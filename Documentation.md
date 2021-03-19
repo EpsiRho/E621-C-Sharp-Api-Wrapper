@@ -18,17 +18,40 @@ This is the main class you need. Make sure before you use any function to define
 
 ### Functions
 
-#### GetPosts(string Tags, int Limit = 75, int Page = 1)
+#### GetPosts(string Tags, int Limit , int Page)
 
 Gets a list of posts.
 
 `Tags`: The tags to look for when getting posts.
 
-`Limit`: The amount of posts to get. Must be within 1 - 320.
+`Limit`: The amount of posts to get. Must be within 1 - 320. (Defaults to 75)
 
-`Page`: The page of posts to grab.
+`Page`: The page of posts to grab. (Defaults to 1)
 
+*Returns*: A list of the Post class
 
+#### GetPosts(string Tags, char PaginationChar, int PostId, int Limit)
 
+Gets a list of posts.
 
+`Tags`: The tags to look for when getting posts.
 
+`Limit`: The amount of posts to get. Must be within 1 - 320. (Defaults to 75)
+
+`PaginationChar`: Must be either 'b' for before or 'a' for after.
+
+`PostId`: The post Id to start at.
+
+*Returns*: A list of the Post class
+
+#### VotePost(int PostId, int Vote)
+
+`PostId`: The id of the post to vote on.
+
+`Vote`: The int to detonated if it should up vote or down vote. 1 for Up, -1 for Down.
+
+*Returns*: The response from the server in the vote class. Contains success, total score, and the user's score.
+
+#### SearchForTags(string Search, TagCategory Category, SortOrder Sort, bool HideEmpty, int Limit, int Page)
+
+`Search`:
