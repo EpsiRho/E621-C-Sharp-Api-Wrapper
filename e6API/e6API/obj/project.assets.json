@@ -251,7 +251,7 @@
     "C:\\Microsoft\\Xamarin\\NuGet\\": {}
   },
   "project": {
-    "version": "0.2.0",
+    "version": "0.2.1",
     "restore": {
       "projectUniqueName": "C:\\Users\\jhset\\Documents\\GitHub\\E621-C-Sharp-Api-Wrapper\\e6API\\e6API\\e6API.csproj",
       "projectName": "e6API_EpsiRho",

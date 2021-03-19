@@ -46,6 +46,8 @@ Gets a list of posts.
 
 #### VotePost(int PostId, int Vote)
 
+Votes on a post
+
 `PostId`: The id of the post to vote on.
 
 `Vote`: The int to detonated if it should up vote or down vote. 1 for Up, -1 for Down.
@@ -54,4 +56,38 @@ Gets a list of posts.
 
 #### SearchForTags(string Search, TagCategory Category, SortOrder Sort, bool HideEmpty, int Limit, int Page)
 
-`Search`:
+Search for tags in the database.
+
+`Search`: The tag to search for. End with '*' to search for entries starting with.
+
+`Category`: The category of tag to search under.
+
+`Sort`: The order to return results in.
+
+`HideEmpty`: Hide tags with no posts.
+
+`Limit`: The max number of results to return.
+
+`Page`: The page of results to show.
+
+*Returns*: A list of a class 'Tag' that holds info on each resulting tag
+
+#### SearchForTags(string Search, char PaginationChar, int PostId, TagCategory Category = TagCategory.All, SortOrder Sort = SortOrder.date, bool HideEmpty = false, int Limit = 75)
+
+Search for tags in the database.
+
+`Search`: The tag to search for. End with '*' to search for entries starting with.
+
+`PaginationChar`: Either 'b' or 'a' (before or after the post id).
+
+`PostId`: The post Id to start at.
+
+`Category`: The category of tag to search under.
+
+`Sort`: The order to return results in.
+
+`HideEmpty`: Hide tags with no posts.
+
+`Limit`: The max number of results to return.
+
+*Returns*: A list of a class 'Tag' that holds info on each resulting tag

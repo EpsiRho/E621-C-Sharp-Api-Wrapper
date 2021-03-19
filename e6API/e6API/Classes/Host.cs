@@ -529,12 +529,11 @@ namespace e6API
                 return null;
             }
 
-
             // Try to deserialize the json into a list of Posts
             TagsHolder json;
             try
             {
-                json = JsonConvert.DeserializeObject<TagsHolder>(response.Content);
+                json = JsonConvert.DeserializeObject<TagsHolder>($"{{tags:{response.Content}}}");
             }
             catch (Exception e)
             {
@@ -637,7 +636,7 @@ namespace e6API
             TagsHolder json;
             try
             {
-                json = JsonConvert.DeserializeObject<TagsHolder>(response.Content);
+                json = JsonConvert.DeserializeObject<TagsHolder>($"{{tags:{response.Content}}}");
             }
             catch (Exception e)
             {
