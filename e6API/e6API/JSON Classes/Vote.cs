@@ -13,5 +13,8 @@ namespace e6API
         public int up { get; set; }
         public int down { get; set; }
         public int our_score { get; set; }
+        public bool success { get; set; }
+        public string message { get; set; }
+        public string code { get; set; }
     }
 }
