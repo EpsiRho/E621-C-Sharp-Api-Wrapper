@@ -7,7 +7,8 @@ Currently in development NuGet package for interacting with the e621 API.
 ### Posts
 
 - [ ] Create Posts
-- [ ] Vote on Posts
+- [x] Vote on Posts
+- [x] Favorite Posts
 - [ ] Flag Posts
 - [x] List Posts
 - [ ] List Flagged posts
@@ -15,7 +16,7 @@ Currently in development NuGet package for interacting with the e621 API.
 
 ### Tags
 
-- [ ] List Tags
+- [x] List Tags
 - [ ] List Tag Aliases
 
 ### Notes
@@ -29,6 +30,16 @@ Currently in development NuGet package for interacting with the e621 API.
 ### Pools
 
 - [ ] Create Pool
-- [ ] List Pools
+- [x] List Pools
 - [ ] Update Pools
 - [ ] Revert Pools
+
+### Comments
+
+- [ ] Create Comments
+- [x] List Comments
+- [ ] Update Comments
+- [ ] Revert Comments
+
+### Users
+- [x] Search Users
