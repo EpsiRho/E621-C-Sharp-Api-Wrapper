@@ -95,7 +95,7 @@ namespace e6API
         public string rating { get; set; }
         public int fav_count { get; set; }
         public List<string> sources { get; set; }
-        public List<object> pools { get; set; }
+        public List<int> pools { get; set; }
         public Relationships relationships { get; set; }
         public int? approver_id { get; set; }
         public int uploader_id { get; set; }

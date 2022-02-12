@@ -15,6 +15,8 @@ namespace e6API
         // Posts
         CreatePost=10,
         VoteOnPost=12,
+        FavoritePost=18,
+        UnfavoritePost=42,
         CreatePostFlag=13,
         ListPosts=20,
         ListPostFlags=21,
@@ -35,7 +37,15 @@ namespace e6API
         CreatePool=17,
         ListPools=25,
         UpdatePool=52,
-        RevertPool=53
+        RevertPool=53,
 
+        // Comments
+        ListComments=26,
+        CreateComment=18,
+        UpdateComment=53,
+        DeleteComment=41,
+
+        // Users
+        ListUsers=27
     }
 }

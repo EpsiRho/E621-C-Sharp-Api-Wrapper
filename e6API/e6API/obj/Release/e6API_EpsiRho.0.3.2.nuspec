@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>e6API_EpsiRho</id>
+    <version>0.3.2</version>
+    <authors>Epsi</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <license type="file">LICENSE.md</license>
+    <licenseUrl>https://aka.ms/deprecateLicenseUrl</licenseUrl>
+    <description>A wrapper for the e621 API.</description>
+    <dependencies>
+      <group targetFramework=".NETStandard2.0">
+        <dependency id="Newtonsoft.Json" version="12.0.3" exclude="Build,Analyzers" />
+        <dependency id="RestSharp" version="106.11.7" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="C:\Users\jhset\Documents\GitHub\E621-C-Sharp-Api-Wrapper\e6API\e6API\bin\Release\netstandard2.0\e6API.dll" target="lib\netstandard2.0\e6API.dll" />
+    <file src="C:\Users\jhset\Documents\GitHub\E621-C-Sharp-Api-Wrapper\LICENSE.md" target="LICENSE.md" />
+  </files>
+</package>
