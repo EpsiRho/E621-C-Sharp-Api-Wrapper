@@ -230,7 +230,11 @@ namespace e6API
             request.AddHeader("User-Agent", UserAgent);
 
             // Check if login parameters are set
-            if (Username != null && ApiKey != null)
+            if(Username == null && ApiKey == null)
+            {
+
+            }
+            else if (Username != null && ApiKey != null)
             {
                 request.AddQueryParameter("login", Username);
                 request.AddQueryParameter("api_key", ApiKey);
@@ -512,7 +516,7 @@ namespace e6API
             var request = await CreateNewRestRequest(E6RequestType.ListTags);
 
             // Set The tag search query
-            request.AddQueryParameter("search[name_matches]", Search);
+            request.AddQueryParameter("search[name_matches]", $"{Search}*");
 
             // Set the category if specified
             if (Category != TagCategory.All)

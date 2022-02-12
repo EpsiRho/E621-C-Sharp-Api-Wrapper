@@ -7,7 +7,7 @@
     <PackageId>e6API_EpsiRho</PackageId>
     <Description>A wrapper for the e621 API.</Description>
     <SignAssembly>false</SignAssembly>
-    <Version>0.4.3</Version>
+    <Version>0.4.4</Version>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
