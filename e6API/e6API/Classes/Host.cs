@@ -1,28 +1,42 @@
-﻿/*
+/*
     E621 API Wrapper
     Written by Epsi Rho
-    Version 0.2
-    Update 0.1 03/17/21@1:07
-    Update 0.2 02/11/22@7:15PM (Can you believe it's been almost a year?)
+    Recovered from the published 0.7.8 assembly and merged with the V2 migration.
 */
-
-using Newtonsoft.Json;
-using RestSharp;
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
+using RestSharp;
 
 namespace e6API
 {
     public class RequestHost
     {
+        private string userAgent;
+
+        private string username;
+
+        private string apiKey;
+
+        private ErrorDetails lastError;
+
+        private RestClient HostClient;
+
+        // Allows the regression suite to supply an in-memory HTTP transport.
+        internal Func<string, RestClient> RestClientFactory { get; set; } = baseUrl => new RestClient(baseUrl);
+
         /// <summary>
         /// Your User Agent to be sent with the request.<br></br>
         /// This is required for a request to work.
         /// </summary>
         public string UserAgent
         {
-            get { return userAgent; }
+            get
+            {
+                return userAgent;
+            }
             set
             {
                 if (userAgent != value)
@@ -31,7 +45,6 @@ namespace e6API
                 }
             }
         }
-        private string userAgent;
 
         /// <summary>
         /// The username to login with.<br></br>
@@ -39,7 +52,10 @@ namespace e6API
         /// </summary>
         public string Username
         {
-            get { return username; }
+            get
+            {
+                return username;
+            }
             set
             {
                 if (username != value)
@@ -48,7 +64,6 @@ namespace e6API
                 }
             }
         }
-        private string username;
 
         /// <summary>
         /// The api key to login with.<br></br>
@@ -56,44 +71,44 @@ namespace e6API
         /// </summary>
         public string ApiKey
         {
-            get { return apiKey; }
+            get
+            {
+                return apiKey;
+            }
             set
             {
-                if(apiKey != value)
+                if (apiKey != value)
                 {
                     apiKey = value;
                 }
             }
         }
-        private string apiKey;
 
         /// <summary>
         /// The details of the last error.
         /// </summary>
         public ErrorDetails LastError
         {
-            get { return lastError; }
+            get
+            {
+                return lastError;
+            }
             set
             {
-                if(lastError != value)
+                if (lastError != value)
                 {
                     lastError = value;
                 }
             }
         }
-        private ErrorDetails lastError;
 
-        private RestClient HostClient;
 
-        public RequestHost()
-        {
-            HostClient = new RestClient();
-        }
         public RequestHost(string UserAgent)
         {
             HostClient = new RestClient();
             this.UserAgent = UserAgent;
         }
+
         public RequestHost(string UserAgent, string Username, string ApiKey)
         {
             HostClient = new RestClient();
@@ -102,163 +117,251 @@ namespace e6API
             this.ApiKey = ApiKey;
         }
 
-        private async Task<RestRequest> CreateNewRestRequest(E6RequestType type)
+        private Task<RestRequest> CreateNewRestRequest(E6RequestType type)
         {
-            RestRequest request = null;
-            // Set the url based on type
+            RestRequest restRequest = null;
             switch (type)
             {
-                case E6RequestType.CreateNote:
-                    HostClient = new RestClient("https://e621.net/notes.json?");
-                    request = new RestRequest();
-                    request.Method = Method.Post;
-                    break;
-                case E6RequestType.CreatePool:
-                    HostClient = new RestClient("https://e621.net/pools.json?");
-                    request = new RestRequest();
-                    request.Method = Method.Post;
-                    break;
-                case E6RequestType.CreatePost:
-                    HostClient = new RestClient("https://e621.net/uploads.json?");
-                    request = new RestRequest();
-                    request.Method = Method.Post;
-                    break;
-                case E6RequestType.CreatePostFlag:
-                    HostClient = new RestClient("https://e621.net/post_flags.json?");
-                    request = new RestRequest();
-                    request.Method = Method.Post;
-                    break;
-                case E6RequestType.DeleteNote:
-                    //  /notes/<Note_ID>.json
-                    request = new RestRequest();
-                    request.Method = Method.Delete;
-                    break;
-                case E6RequestType.ListNotes:
-                    HostClient = new RestClient("https://e621.net/notes.json?");
-                    request = new RestRequest();
-                    request.Method = Method.Get;
-                    break;
-                case E6RequestType.ListPools:
-                    HostClient = new RestClient("https://e621.net/pools.json?");
-                    request = new RestRequest();
-                    request.Method = Method.Get;
-                    break;
-                case E6RequestType.ListPostFlags:
-                    HostClient = new RestClient("https://e621.net/post_flags.json?");
-                    request = new RestRequest();
-                    request.Method = Method.Get;
-                    break;
-                case E6RequestType.ListPosts:
-                    HostClient = new RestClient("https://e621.net/posts.json?");
-                    request = new RestRequest();
-                    request.Method = Method.Get;
-                    break;
-                case E6RequestType.ListTagAliases:
-                    HostClient = new RestClient("https://e621.net/tag_aliases.json?");
-                    request = new RestRequest();
-                    request.Method = Method.Get;
-                    break;
-                case E6RequestType.ListTags:
-                    HostClient = new RestClient("https://e621.net/tags.json?");
-                    request = new RestRequest();
-                    request.Method = Method.Get;
-                    break;
-                case E6RequestType.RevertNote:
-                    //	/notes/<Note_ID>/revert.json
-                    request = new RestRequest();
-                    request.Method = Method.Put;
-                    break;
-                case E6RequestType.RevertPool:
-                    //  /pools/<Pool_ID>/revert.json
-                    request = new RestRequest();
-                    request.Method = Method.Put;
-                    break;
-                case E6RequestType.UpdateNote:
-                    //  /notes/<Note_ID>.json
-                    request = new RestRequest();
-                    request.Method = Method.Put;
-                    break;
-                case E6RequestType.UpdatePool:
-                    // 	/pools/<Pool_ID>.json
-                    request = new RestRequest();
-                    request.Method = Method.Put;
-                    break;
-                case E6RequestType.UpdatePost:
-                    //  /posts/<Post_ID>.json
-                    request = new RestRequest();
-                    request.Method = Method.Patch;
-                    break;
-                case E6RequestType.VoteOnPost:
-                    //	/posts/<Post_ID>/votes.json
-                    request = new RestRequest();
-                    request.Method = Method.Post;
-                    break;
-                case E6RequestType.ListComments:
-                    HostClient = new RestClient("https://e621.net/comments.json?");
-                    request = new RestRequest();
-                    request.Method = Method.Get;
-                    request.AddQueryParameter("group_by", "comment");
-                    request.AddQueryParameter("format", "json");
-                    break;
-                case E6RequestType.FavoritePost:
-                    HostClient = new RestClient("https://e621.net/favorites.json?");
-                    request = new RestRequest();
-                    request.Method = Method.Post;
-                    break;
-                case E6RequestType.UnfavoritePost:
-                    //	/posts/<Post_ID>/votes.json
-                    request = new RestRequest();
-                    request.Method = Method.Delete;
-                    break;
-                case E6RequestType.ListUsers:
-                    HostClient = new RestClient("https://e621.net/users.json?");
-                    request = new RestRequest();
-                    request.Method = Method.Get;
-                    break;
+            case E6RequestType.CreateComment:
+                HostClient = RestClientFactory("https://e621.net/comments.json?");
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Post;
+                break;
+            case E6RequestType.CreateNote:
+                HostClient = RestClientFactory("https://e621.net/notes.json?");
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Post;
+                break;
+            case E6RequestType.CreatePool:
+                HostClient = RestClientFactory("https://e621.net/pools.json?");
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Post;
+                break;
+            case E6RequestType.CreatePost:
+                HostClient = RestClientFactory("https://e621.net/uploads.json?");
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Post;
+                break;
+            case E6RequestType.CreatePostFlag:
+                HostClient = RestClientFactory("https://e621.net/post_flags.json?");
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Post;
+                break;
+            case E6RequestType.DeleteNote:
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Delete;
+                break;
+            case E6RequestType.ListNotes:
+                HostClient = RestClientFactory("https://e621.net/notes.json?");
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Get;
+                break;
+            case E6RequestType.ListPools:
+                HostClient = RestClientFactory("https://e621.net/pools.json?");
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Get;
+                break;
+            case E6RequestType.ListPostFlags:
+                HostClient = RestClientFactory("https://e621.net/post_flags.json?");
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Get;
+                break;
+            case E6RequestType.ListPosts:
+                HostClient = RestClientFactory("https://e621.net/posts.json?");
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Get;
+                restRequest.AddQueryParameter("v2", "true");
+                break;
+            case E6RequestType.ListTagAliases:
+                HostClient = RestClientFactory("https://e621.net/tag_aliases.json?");
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Get;
+                break;
+            case E6RequestType.ListTags:
+                HostClient = RestClientFactory("https://e621.net/tags.json?");
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Get;
+                break;
+            case E6RequestType.RevertNote:
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Put;
+                break;
+            case E6RequestType.RevertPool:
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Put;
+                break;
+            case E6RequestType.UpdateNote:
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Put;
+                break;
+            case E6RequestType.UpdatePool:
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Put;
+                break;
+            case E6RequestType.UpdatePost:
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Patch;
+                break;
+            case E6RequestType.VoteOnPost:
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Post;
+                break;
+            case E6RequestType.ListComments:
+                HostClient = RestClientFactory("https://e621.net/comments.json?");
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Get;
+                restRequest.AddQueryParameter("group_by", "comment");
+                restRequest.AddQueryParameter("format", "json");
+                break;
+            case E6RequestType.FavoritePost:
+                HostClient = RestClientFactory("https://e621.net/favorites.json?");
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Post;
+                break;
+            case E6RequestType.UnfavoritePost:
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Delete;
+                break;
+            case E6RequestType.ListUsers:
+                HostClient = RestClientFactory("https://e621.net/users.json?");
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Get;
+                break;
+            case E6RequestType.SearchWiki:
+                HostClient = RestClientFactory("https://e621.net/wiki_pages.json?");
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Get;
+                break;
+            case E6RequestType.ListSets:
+                HostClient = RestClientFactory("https://e621.net/post_sets");
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Get;
+                break;
+            case E6RequestType.ListBlips:
+                HostClient = RestClientFactory("https://e621.net/blips");
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Get;
+                break;
+            case E6RequestType.CreateBlip:
+                HostClient = RestClientFactory("https://e621.net/blips");
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Post;
+                break;
             }
-
-            // Try to set the UserAgent
+            if (restRequest == null)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Unsupported request type"
+                };
+                return Task.FromResult<RestRequest>(null);
+            }
             if (UserAgent == null)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: UserAgent"
                 };
+                return Task.FromResult<RestRequest>(null);
+            }
+            restRequest.AddHeader("User-Agent", UserAgent);
+            restRequest.AddHeader("Accept", "application/json");
+            if (Username != null || ApiKey != null)
+            {
+                if (Username != null && ApiKey != null)
+                {
+                    restRequest.AddQueryParameter("login", Username);
+                    restRequest.AddQueryParameter("api_key", ApiKey);
+                }
+                else
+                {
+                    if (Username != null && ApiKey == null)
+                    {
+                        LastError = new ErrorDetails
+                        {
+                            ResponseCode = StatusCode.MissingOrInvalidParameter,
+                            Message = "Invalid Parameter: Missing ApiKey"
+                        };
+                        return Task.FromResult<RestRequest>(null);
+                    }
+                    if (Username == null && ApiKey != null)
+                    {
+                        LastError = new ErrorDetails
+                        {
+                            ResponseCode = StatusCode.MissingOrInvalidParameter,
+                            Message = "Invalid Parameter: Missing Username"
+                        };
+                        return Task.FromResult<RestRequest>(null);
+                    }
+                }
+            }
+            return Task.FromResult(restRequest);
+        }
+
+        public async Task<List<Tag>> GetAutocompletetags(string Tag)
+        {
+            HostClient = RestClientFactory("https://e621.net/tags/autocomplete.json?");
+            RestRequest restRequest = new RestRequest();
+            restRequest.Method = Method.Get;
+            restRequest.AddHeader("User-Agent", UserAgent);
+            restRequest.AddQueryParameter("search[name_matches]", Tag);
+            restRequest.AddQueryParameter("expiry", "7");
+            RestResponse restResponse = await HostClient.ExecuteAsync(restRequest);
+            if (restResponse == null)
+            {
                 return null;
             }
-            request.AddHeader("User-Agent", UserAgent);
-
-            // Check if login parameters are set
-            if(Username == null && ApiKey == null)
+            List<Tag> result;
+            try
             {
-
+                result = JsonConvert.DeserializeObject<List<Tag>>(restResponse.Content ?? "");
             }
-            else if (Username != null && ApiKey != null)
+            catch (Exception ex)
             {
-                request.AddQueryParameter("login", Username);
-                request.AddQueryParameter("api_key", ApiKey);
-            }
-            else if (Username != null && ApiKey == null)
-            {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
-                    ResponseCode = StatusCode.MissingOrInvalidParameter,
-                    Message = "Invalid Parameter: Missing ApiKey"
+                    ResponseCode = StatusCode.JsonConversionFailure,
+                    Message = "Couldn't convert json: " + ex.Message
                 };
                 return null;
             }
-            else if (Username == null && ApiKey != null)
-            {
-                LastError = new ErrorDetails()
-                {
-                    ResponseCode = StatusCode.MissingOrInvalidParameter,
-                    Message = "Invalid Parameter: Missing Username"
-                };
-                return null;
-            }
+            return result;
+        }
 
-            return request;
+        public async Task<bool> UpdateUserBlacklist(string UserId, string Username, string ApiKey, string Blacklist)
+        {
+            HostClient = RestClientFactory("https://e621.net/users/" + UserId);
+            RestRequest restRequest = new RestRequest();
+            restRequest.Method = Method.Post;
+            restRequest.AlwaysMultipartFormData = true;
+            restRequest.AddHeader("User-Agent", UserAgent);
+            restRequest.AddParameter("login", Username);
+            restRequest.AddParameter("api_key", ApiKey);
+            restRequest.AddParameter("user[blacklisted_tags]", Blacklist);
+            restRequest.AddParameter("_method", "patch");
+            if ((await HostClient.ExecuteAsync(restRequest)).StatusCode == HttpStatusCode.NoContent)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        public async Task<bool> TryAuthenticate(string Username, string ApiKey)
+        {
+            HostClient = RestClientFactory("https://e621.net/posts.json?");
+            RestRequest restRequest = new RestRequest();
+            restRequest.Method = Method.Get;
+            restRequest.AddHeader("User-Agent", UserAgent);
+            restRequest.AddQueryParameter("login", Username);
+            restRequest.AddQueryParameter("api_key", ApiKey);
+            restRequest.AddQueryParameter("limit", "1");
+            if ((await HostClient.ExecuteAsync(restRequest)).Content.Contains("AuthenticationFailure"))
+            {
+                return false;
+            }
+            return true;
         }
 
         /// <summary>
@@ -270,12 +373,14 @@ namespace e6API
         /// <returns>A list of the Post class.</returns>
         public async Task<List<Post>> GetPosts(string Tags, int Limit = 75, int Page = 1)
         {
-            var request = await CreateNewRestRequest(E6RequestType.ListPosts);
-
-            // Add any tags into the request
+            RestRequest request = await CreateNewRestRequest(E6RequestType.ListPosts);
+            if (request == null)
+            {
+                return null;
+            }
             if (Tags == null)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: Tag variable is null"
@@ -283,11 +388,9 @@ namespace e6API
                 return null;
             }
             request.AddQueryParameter("tags", Tags);
-
-            // Try to set the limit
-            if(Limit < 1 || Limit > 320)
+            if (Limit < 1 || Limit > 320)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: Limit must be a value within 1 - 320"
@@ -295,11 +398,9 @@ namespace e6API
                 return null;
             }
             request.AddQueryParameter("limit", Limit.ToString());
-
-            // Set the page
             if (Page < 1 || Page > 750)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: Page must be a value within 1 - 750"
@@ -307,38 +408,31 @@ namespace e6API
                 return null;
             }
             request.AddQueryParameter("page", Page.ToString());
-
-            // Send the request
-            var response = await HostClient.ExecuteAsync(request);
-
-            if (response.StatusCode != System.Net.HttpStatusCode.OK && response.StatusCode != System.Net.HttpStatusCode.Created && response.StatusCode != System.Net.HttpStatusCode.Accepted)
+            RestResponse restResponse = await HostClient.ExecuteAsync(request);
+            if (restResponse.StatusCode != HttpStatusCode.OK && restResponse.StatusCode != HttpStatusCode.Created && restResponse.StatusCode != HttpStatusCode.Accepted)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
-                    ResponseCode = (StatusCode)(int)response.StatusCode,
-                    Message = response.StatusDescription
+                    ResponseCode = (StatusCode)restResponse.StatusCode,
+                    Message = restResponse.StatusDescription
                 };
                 return null;
             }
-
-            // Try to deserialize the json into a list of Posts
-            PostsHolder json;
+            List<Post> posts;
             try
             {
-                json = JsonConvert.DeserializeObject<PostsHolder>(response.Content);
+                posts = JsonConvert.DeserializeObject<List<Post>>(restResponse.Content);
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.JsonConversionFailure,
-                    Message = $"Couldn't convert json: {e.Message}"
+                    Message = "Couldn't convert json: " + ex.Message
                 };
                 return null;
             }
-
-            // Return the obtained posts
-            return json.posts;
+            return posts;
         }
 
         /// <summary>
@@ -351,12 +445,14 @@ namespace e6API
         /// <returns>A list of the Post class</returns>
         public async Task<List<Post>> GetPosts(string Tags, char PaginationChar, int PostId, int Limit = 75)
         {
-            var request = await CreateNewRestRequest(E6RequestType.ListPosts);
-
-            // Add any tags into the request
+            RestRequest request = await CreateNewRestRequest(E6RequestType.ListPosts);
+            if (request == null)
+            {
+                return null;
+            }
             if (Tags == null)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: Tag variable is null"
@@ -364,11 +460,9 @@ namespace e6API
                 return null;
             }
             request.AddQueryParameter("tags", Tags);
-
-            // Try to set the limit
             if (Limit < 1 || Limit > 320)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: Limit must be a value within 1 - 320"
@@ -376,11 +470,9 @@ namespace e6API
                 return null;
             }
             request.AddQueryParameter("limit", Limit.ToString());
-
-            // Set the page
-            if(PaginationChar != 'a' && PaginationChar != 'b')
+            if (PaginationChar != 'a' && PaginationChar != 'b')
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: Invalid PaginationChar"
@@ -389,7 +481,7 @@ namespace e6API
             }
             if (PostId < 0)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: Invalid post id"
@@ -397,69 +489,61 @@ namespace e6API
                 return null;
             }
             request.AddQueryParameter("page", $"{PaginationChar}{PostId}");
-
-            // Send the request
-            var response = await HostClient.ExecuteAsync(request);
-
-            if (response.StatusCode != System.Net.HttpStatusCode.OK && response.StatusCode != System.Net.HttpStatusCode.Created && response.StatusCode != System.Net.HttpStatusCode.Accepted)
+            RestResponse restResponse = await HostClient.ExecuteAsync(request);
+            if (restResponse.StatusCode != HttpStatusCode.OK && restResponse.StatusCode != HttpStatusCode.Created && restResponse.StatusCode != HttpStatusCode.Accepted)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
-                    ResponseCode = (StatusCode)(int)response.StatusCode,
-                    Message = response.StatusDescription
+                    ResponseCode = (StatusCode)restResponse.StatusCode,
+                    Message = restResponse.StatusDescription
                 };
                 return null;
             }
-
-            // Try to deserialize the json into a list of Posts
-            PostsHolder json;
+            List<Post> posts;
             try
             {
-                json = JsonConvert.DeserializeObject<PostsHolder>(response.Content);
+                posts = JsonConvert.DeserializeObject<List<Post>>(restResponse.Content);
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.JsonConversionFailure,
-                    Message = $"Couldn't convert json: {e.Message}"
+                    Message = "Couldn't convert json: " + ex.Message
                 };
                 return null;
             }
-
-            // Return the obtained posts
-            return json.posts;
+            return posts;
         }
 
         /// <summary>
-        /// Votes on a post
+        /// Change the user's vote on a post
         /// </summary>
         /// <param name="PostId">The post id to vote on</param>
         /// <param name="Vote">1: Vote Up<br></br>-1: Vote Down</param>
+        /// <param name="Toggle">Set to true to have this score replace the old score. Repeat votes will not remove the vote.</param>
         /// <returns>The response from the server in the vote class.<br></br>
         ///          Contains success, total score, and the user's score.</returns>
-        public async Task<Vote> VotePost(int PostId, int Vote)
+        public async Task<Vote> SetVote(int PostId, int Vote, bool Toggle = false)
         {
-            var request = await CreateNewRestRequest(E6RequestType.VoteOnPost);
-
-            // Check if the post id is not negative
-            if(PostId < 0)
+            RestRequest request = await CreateNewRestRequest(E6RequestType.VoteOnPost);
+            if (request == null)
             {
-                LastError = new ErrorDetails()
+                return null;
+            }
+            if (PostId < 0)
+            {
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: PostId variable is invalid"
                 };
                 return null;
             }
-
-            // set the base uri since it requires the post id
-            HostClient = new RestClient($"https://e621.net/posts/{PostId.ToString()}/votes.json");
-
-            // set the score to vote
-            if(Vote != 1 && Vote != -1)
+            HostClient = RestClientFactory("https://e621.net/posts/" + PostId + "/votes.json");
+            if (Vote != 1 && Vote != -1)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: Vote variable must be 1 or -1"
@@ -467,38 +551,32 @@ namespace e6API
                 return null;
             }
             request.AddQueryParameter("score", Vote.ToString());
-
-            // Send the request
-            var response = await HostClient.ExecuteAsync(request);
-
-            if (response.StatusCode != System.Net.HttpStatusCode.OK && response.StatusCode != System.Net.HttpStatusCode.Created && response.StatusCode != System.Net.HttpStatusCode.Accepted)
+            request.AddQueryParameter("no_unvote", Toggle ? "true" : "false");
+            RestResponse restResponse = await HostClient.ExecuteAsync(request);
+            if (restResponse.StatusCode != HttpStatusCode.OK && restResponse.StatusCode != HttpStatusCode.Created && restResponse.StatusCode != HttpStatusCode.Accepted)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
-                    ResponseCode = (StatusCode)(int)response.StatusCode,
-                    Message = response.StatusDescription
+                    ResponseCode = (StatusCode)restResponse.StatusCode,
+                    Message = restResponse.StatusDescription
                 };
                 return null;
             }
-
-            // Try to deserialize the json into a list of Posts
-            Vote json;
+            Vote result;
             try
             {
-                json = JsonConvert.DeserializeObject<Vote>(response.Content);
+                result = JsonConvert.DeserializeObject<Vote>(restResponse.Content);
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.JsonConversionFailure,
-                    Message = $"Couldn't convert json: {e.Message}"
+                    Message = "Couldn't convert json: " + ex.Message
                 };
                 return null;
             }
-
-            // Return the obtained posts
-            return json;
+            return result;
         }
 
         /// <summary>
@@ -511,35 +589,30 @@ namespace e6API
         /// <param name="Limit">The max number of results to return</param>
         /// <param name="Page">The page of results to show</param>
         /// <returns>A list of a class 'Tag' that holds info on each resulting tag</returns>
-        public async Task<List<Tag>> SearchTags(string Search, int Limit = 75, int Page = 1, TagCategory Category=TagCategory.All, TagsSortOrder Sort = TagsSortOrder.date, bool HideEmpty=false)
+        public async Task<List<Tag>> GetTags(string Search, int Limit = 75, int Page = 1, TagCategory Category = TagCategory.All, TagsSortOrder Sort = TagsSortOrder.date, bool HideEmpty = false)
         {
-            var request = await CreateNewRestRequest(E6RequestType.ListTags);
-
-            // Set The tag search query
-            request.AddQueryParameter("search[name_matches]", $"{Search}*");
-
-            // Set the category if specified
+            RestRequest request = await CreateNewRestRequest(E6RequestType.ListTags);
+            if (request == null)
+            {
+                return null;
+            }
+            request.AddQueryParameter("search[name_matches]", Search ?? "");
             if (Category != TagCategory.All)
             {
-                request.AddQueryParameter("search[category]", ((int)Category).ToString());
+                int num = (int)Category;
+                request.AddQueryParameter("search[category]", num.ToString());
             }
-
-            // Set the sort order if specified
-            if(Sort != TagsSortOrder.date)
+            if (Sort != 0)
             {
-                request.AddQueryParameter("search[order]", ((int)Sort).ToString());
+                request.AddQueryParameter("search[order]", Sort.ToString());
             }
-
-            // Remove empty posts if specified
             if (HideEmpty)
             {
                 request.AddQueryParameter("search[hide_empty]", "True");
             }
-
-            // Check if the limit is valid, then set if it is
-            if(Limit < 1 || Limit > 1000)
+            if (Limit < 1 || Limit > 1000)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: PostId variable is invalid"
@@ -547,50 +620,41 @@ namespace e6API
                 return null;
             }
             request.AddQueryParameter("limit", Limit.ToString());
-
-            // Set the page
             if (Page < 1)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: PostId variable is invalid"
                 };
                 return null;
             }
-            request.AddQueryParameter("search[hide_empty]", Page.ToString());
-
-            // Send the request
-            var response = await HostClient.ExecuteAsync(request);
-
-            if (response.StatusCode != System.Net.HttpStatusCode.OK && response.StatusCode != System.Net.HttpStatusCode.Created && response.StatusCode != System.Net.HttpStatusCode.Accepted)
+            request.AddQueryParameter("page", Page.ToString());
+            RestResponse restResponse = await HostClient.ExecuteAsync(request);
+            if (restResponse.StatusCode != HttpStatusCode.OK && restResponse.StatusCode != HttpStatusCode.Created && restResponse.StatusCode != HttpStatusCode.Accepted)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
-                    ResponseCode = (StatusCode)(int)response.StatusCode,
-                    Message = response.StatusDescription
+                    ResponseCode = (StatusCode)restResponse.StatusCode,
+                    Message = restResponse.StatusDescription
                 };
                 return null;
             }
-
-            // Try to deserialize the json into a list of Posts
-            TagsHolder json;
+            TagsHolder tagsHolder;
             try
             {
-                json = JsonConvert.DeserializeObject<TagsHolder>($"{{tags:{response.Content}}}");
+                tagsHolder = JsonConvert.DeserializeObject<TagsHolder>("{tags:" + restResponse.Content + "}");
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.JsonConversionFailure,
-                    Message = $"Couldn't convert json: {e.Message}"
+                    Message = "Couldn't convert json: " + ex.Message
                 };
                 return null;
             }
-
-            // Return the obtained posts
-            return json.tags;
+            return tagsHolder.tags;
         }
 
         /// <summary>
@@ -604,35 +668,30 @@ namespace e6API
         /// <param name="HideEmpty">Hide tags with no posts</param>
         /// <param name="Limit">The max number of results to return</param>
         /// <returns>A list of a class 'Tag' that holds info on each resulting tag</returns>
-        public async Task<List<Tag>> SearchTags(string Search, char PaginationChar, int PostId, int Limit = 75, TagCategory Category = TagCategory.All, TagsSortOrder Sort = TagsSortOrder.date, bool HideEmpty = false)
+        public async Task<List<Tag>> GetTags(string Search, char PaginationChar, int PostId, int Limit = 75, TagCategory Category = TagCategory.All, TagsSortOrder Sort = TagsSortOrder.date, bool HideEmpty = false)
         {
-            var request = await CreateNewRestRequest(E6RequestType.ListTags);
-
-            // Set The tag search query
+            RestRequest request = await CreateNewRestRequest(E6RequestType.ListTags);
+            if (request == null)
+            {
+                return null;
+            }
             request.AddQueryParameter("search[name_matches]", Search);
-
-            // Set the category if specified
             if (Category != TagCategory.All)
             {
-                request.AddQueryParameter("search[category]", ((int)Category).ToString());
+                int num = (int)Category;
+                request.AddQueryParameter("search[category]", num.ToString());
             }
-
-            // Set the sort order if specified
-            if (Sort != TagsSortOrder.date)
+            if (Sort != 0)
             {
-                request.AddQueryParameter("search[order]", ((int)Sort).ToString());
+                request.AddQueryParameter("search[order]", Sort.ToString());
             }
-
-            // Remove empty posts if specified
             if (HideEmpty)
             {
                 request.AddQueryParameter("search[hide_empty]", "True");
             }
-
-            // Check if the limit is valid, then set if it is
             if (Limit < 1 || Limit > 1000)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: PostId variable is invalid"
@@ -640,11 +699,9 @@ namespace e6API
                 return null;
             }
             request.AddQueryParameter("limit", Limit.ToString());
-
-            // Set the page
             if (PaginationChar != 'a' && PaginationChar != 'b')
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: Invalid PaginationChar"
@@ -653,7 +710,7 @@ namespace e6API
             }
             if (PostId < 0)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: Invalid post id"
@@ -661,39 +718,31 @@ namespace e6API
                 return null;
             }
             request.AddQueryParameter("page", $"{PaginationChar}{PostId}");
-
-            // Send the request
-            var response = await HostClient.ExecuteAsync(request);
-
-            if (response.StatusCode != System.Net.HttpStatusCode.OK && response.StatusCode != System.Net.HttpStatusCode.Created && response.StatusCode != System.Net.HttpStatusCode.Accepted)
+            RestResponse restResponse = await HostClient.ExecuteAsync(request);
+            if (restResponse.StatusCode != HttpStatusCode.OK && restResponse.StatusCode != HttpStatusCode.Created && restResponse.StatusCode != HttpStatusCode.Accepted)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
-                    ResponseCode = (StatusCode)(int)response.StatusCode,
-                    Message = response.StatusDescription
+                    ResponseCode = (StatusCode)restResponse.StatusCode,
+                    Message = restResponse.StatusDescription
                 };
                 return null;
             }
-
-
-            // Try to deserialize the json into a list of Posts
-            TagsHolder json;
+            TagsHolder tagsHolder;
             try
             {
-                json = JsonConvert.DeserializeObject<TagsHolder>($"{{tags:{response.Content}}}");
+                tagsHolder = JsonConvert.DeserializeObject<TagsHolder>("{tags:" + restResponse.Content + "}");
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.JsonConversionFailure,
-                    Message = $"Couldn't convert json: {e.Message}"
+                    Message = "Couldn't convert json: " + ex.Message
                 };
                 return null;
             }
-
-            // Return the obtained posts
-            return json.tags;
+            return tagsHolder.tags;
         }
 
         /// <summary>
@@ -702,14 +751,16 @@ namespace e6API
         /// <param name="PostId">The id of the post</param>
         /// <param name="Limit">The max number of comments to get</param>
         /// <returns>A list of Comment classes</returns>
-        public async Task<List<Comment>> GetPostComments(int PostId, int Limit=75)
+        public async Task<List<Comment>> GetPostComments(int PostId, int Limit = 75)
         {
-            var request = await CreateNewRestRequest(E6RequestType.ListComments);
-
-            // Try to set the post id
+            RestRequest request = await CreateNewRestRequest(E6RequestType.ListComments);
+            if (request == null)
+            {
+                return null;
+            }
             if (PostId < 0)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: Invalid post id"
@@ -717,11 +768,9 @@ namespace e6API
                 return null;
             }
             request.AddQueryParameter("search[post_id]", PostId.ToString());
-
-            // Check if the limit is valid, then set if it is
             if (Limit < 1 || Limit > 1000)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: PostId variable is invalid"
@@ -729,38 +778,31 @@ namespace e6API
                 return null;
             }
             request.AddQueryParameter("limit", Limit.ToString());
-
-            // Send the request
-            var response = await HostClient.ExecuteAsync(request);
-
-            if (response.StatusCode != System.Net.HttpStatusCode.OK && response.StatusCode != System.Net.HttpStatusCode.Created && response.StatusCode != System.Net.HttpStatusCode.Accepted)
+            RestResponse restResponse = await HostClient.ExecuteAsync(request);
+            if (restResponse.StatusCode != HttpStatusCode.OK && restResponse.StatusCode != HttpStatusCode.Created && restResponse.StatusCode != HttpStatusCode.Accepted)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
-                    ResponseCode = (StatusCode)(int)response.StatusCode,
-                    Message = response.StatusDescription
+                    ResponseCode = (StatusCode)restResponse.StatusCode,
+                    Message = restResponse.StatusDescription
                 };
                 return null;
             }
-
-            // Try to deserialize the json into a list of Posts
-            CommentsHolder json;
+            CommentsHolder commentsHolder;
             try
             {
-                json = JsonConvert.DeserializeObject<CommentsHolder>($"{{comments:{response.Content}}}");
+                commentsHolder = JsonConvert.DeserializeObject<CommentsHolder>("{comments:" + restResponse.Content + "}");
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.JsonConversionFailure,
-                    Message = $"Couldn't convert json: {e.Message}"
+                    Message = "Couldn't convert json: " + ex.Message
                 };
                 return null;
             }
-
-            // Return the obtained posts
-            return json.comments;
+            return commentsHolder.comments;
         }
 
         /// <summary>
@@ -769,14 +811,16 @@ namespace e6API
         /// <param name="Body">A string to search comment bodies for. Use "*" for wildcard search</param>
         /// <param name="Limit">The max number of comments to get</param>
         /// <returns></returns>
-        public async Task<List<Comment>> SearchComments(string Body, int Limit=75)
+        public async Task<List<Comment>> SearchComments(string Body, int Limit = 75)
         {
-            var request = await CreateNewRestRequest(E6RequestType.ListComments);
-
-            // Try to set the post id
-            if (Body != null)
+            RestRequest request = await CreateNewRestRequest(E6RequestType.ListComments);
+            if (request == null)
             {
-                LastError = new ErrorDetails()
+                return null;
+            }
+            if (Body == null)
+            {
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: Body is null"
@@ -784,11 +828,9 @@ namespace e6API
                 return null;
             }
             request.AddQueryParameter("search[body_matches]", Body);
-
-            // Check if the limit is valid, then set if it is
             if (Limit < 1 || Limit > 1000)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: PostId variable is invalid"
@@ -796,38 +838,31 @@ namespace e6API
                 return null;
             }
             request.AddQueryParameter("limit", Limit.ToString());
-
-            // Send the request
-            var response = await HostClient.ExecuteAsync(request);
-
-            if (response.StatusCode != System.Net.HttpStatusCode.OK && response.StatusCode != System.Net.HttpStatusCode.Created && response.StatusCode != System.Net.HttpStatusCode.Accepted)
+            RestResponse restResponse = await HostClient.ExecuteAsync(request);
+            if (restResponse.StatusCode != HttpStatusCode.OK && restResponse.StatusCode != HttpStatusCode.Created && restResponse.StatusCode != HttpStatusCode.Accepted)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
-                    ResponseCode = (StatusCode)(int)response.StatusCode,
-                    Message = response.StatusDescription
+                    ResponseCode = (StatusCode)restResponse.StatusCode,
+                    Message = restResponse.StatusDescription
                 };
                 return null;
             }
-
-            // Try to deserialize the json into a list of Posts
-            CommentsHolder json;
+            CommentsHolder commentsHolder;
             try
             {
-                json = JsonConvert.DeserializeObject<CommentsHolder>($"{{comments:{response.Content}}}");
+                commentsHolder = JsonConvert.DeserializeObject<CommentsHolder>("{comments:" + restResponse.Content + "}");
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.JsonConversionFailure,
-                    Message = $"Couldn't convert json: {e.Message}"
+                    Message = "Couldn't convert json: " + ex.Message
                 };
                 return null;
             }
-
-            // Return the obtained posts
-            return json.comments;
+            return commentsHolder.comments;
         }
 
         /// <summary>
@@ -836,14 +871,16 @@ namespace e6API
         /// <param name="Body">A string to search comment bodies for. Use "*" for wildcard search</param>
         /// <param name="Limit">The max number of comments to get</param>
         /// <returns></returns>
-        public async Task<List<Comment>> GetUserComments(string CreatorName, int Limit=75)
+        public async Task<List<Comment>> GetUserComments(string CreatorName, int Limit = 75)
         {
-            var request = await CreateNewRestRequest(E6RequestType.ListComments);
-
-            // Try to set the post id
-            if (CreatorName != null)
+            RestRequest request = await CreateNewRestRequest(E6RequestType.ListComments);
+            if (request == null)
             {
-                LastError = new ErrorDetails()
+                return null;
+            }
+            if (CreatorName == null)
+            {
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: CreatorName is null"
@@ -851,11 +888,9 @@ namespace e6API
                 return null;
             }
             request.AddQueryParameter("search[creator_name]", CreatorName);
-
-            // Check if the limit is valid, then set if it is
             if (Limit < 1 || Limit > 1000)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: PostId variable is invalid"
@@ -863,38 +898,31 @@ namespace e6API
                 return null;
             }
             request.AddQueryParameter("limit", Limit.ToString());
-
-            // Send the request
-            var response = await HostClient.ExecuteAsync(request);
-
-            if (response.StatusCode != System.Net.HttpStatusCode.OK && response.StatusCode != System.Net.HttpStatusCode.Created && response.StatusCode != System.Net.HttpStatusCode.Accepted)
+            RestResponse restResponse = await HostClient.ExecuteAsync(request);
+            if (restResponse.StatusCode != HttpStatusCode.OK && restResponse.StatusCode != HttpStatusCode.Created && restResponse.StatusCode != HttpStatusCode.Accepted)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
-                    ResponseCode = (StatusCode)(int)response.StatusCode,
-                    Message = response.StatusDescription
+                    ResponseCode = (StatusCode)restResponse.StatusCode,
+                    Message = restResponse.StatusDescription
                 };
                 return null;
             }
-
-            // Try to deserialize the json into a list of Posts
-            CommentsHolder json;
+            CommentsHolder commentsHolder;
             try
             {
-                json = JsonConvert.DeserializeObject<CommentsHolder>($"{{comments:{response.Content}}}");
+                commentsHolder = JsonConvert.DeserializeObject<CommentsHolder>("{comments:" + restResponse.Content + "}");
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.JsonConversionFailure,
-                    Message = $"Couldn't convert json: {e.Message}"
+                    Message = "Couldn't convert json: " + ex.Message
                 };
                 return null;
             }
-
-            // Return the obtained posts
-            return json.comments;
+            return commentsHolder.comments;
         }
 
         /// <summary>
@@ -903,14 +931,16 @@ namespace e6API
         /// <param name="Body">A string to search comment bodies for. Use "*" for wildcard search</param>
         /// <param name="Limit">The max number of comments to get</param>
         /// <returns></returns>
-        public async Task<List<Comment>> GetUserComments(int CreatorId, int Limit=75)
+        public async Task<List<Comment>> GetUserComments(int CreatorId, int Limit = 75)
         {
-            var request = await CreateNewRestRequest(E6RequestType.ListComments);
-
-            // Try to set the post id
+            RestRequest request = await CreateNewRestRequest(E6RequestType.ListComments);
+            if (request == null)
+            {
+                return null;
+            }
             if (CreatorId < 0)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: CreatorId is invalid"
@@ -918,11 +948,9 @@ namespace e6API
                 return null;
             }
             request.AddQueryParameter("search[creator_id]", CreatorId.ToString());
-
-            // Check if the limit is valid, then set if it is
             if (Limit < 1 || Limit > 1000)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: PostId variable is invalid"
@@ -930,38 +958,31 @@ namespace e6API
                 return null;
             }
             request.AddQueryParameter("limit", Limit.ToString());
-
-            // Send the request
-            var response = await HostClient.ExecuteAsync(request);
-
-            if (response.StatusCode != System.Net.HttpStatusCode.OK && response.StatusCode != System.Net.HttpStatusCode.Created && response.StatusCode != System.Net.HttpStatusCode.Accepted)
+            RestResponse restResponse = await HostClient.ExecuteAsync(request);
+            if (restResponse.StatusCode != HttpStatusCode.OK && restResponse.StatusCode != HttpStatusCode.Created && restResponse.StatusCode != HttpStatusCode.Accepted)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
-                    ResponseCode = (StatusCode)(int)response.StatusCode,
-                    Message = response.StatusDescription
+                    ResponseCode = (StatusCode)restResponse.StatusCode,
+                    Message = restResponse.StatusDescription
                 };
                 return null;
             }
-
-            // Try to deserialize the json into a list of Posts
-            CommentsHolder json;
+            CommentsHolder commentsHolder;
             try
             {
-                json = JsonConvert.DeserializeObject<CommentsHolder>($"{{comments:{response.Content}}}");
+                commentsHolder = JsonConvert.DeserializeObject<CommentsHolder>("{comments:" + restResponse.Content + "}");
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.JsonConversionFailure,
-                    Message = $"Couldn't convert json: {e.Message}"
+                    Message = "Couldn't convert json: " + ex.Message
                 };
                 return null;
             }
-
-            // Return the obtained posts
-            return json.comments;
+            return commentsHolder.comments;
         }
 
         /// <summary>
@@ -970,18 +991,19 @@ namespace e6API
         /// <param name="Search">The string to search for.<br></br>Use "*" for wildcard searches.</param>
         /// <param name="Limit">The max ammount of returned pools.</param>
         /// <param name="SortOrder">The order to list the pools.</param>
+        /// <param name="Page">The page of results to return.</param>
         /// <returns>A list of Pool classes.</returns>
-        public async Task<List<Pool>> SearchPoolNames(string Search, int Limit=75, PoolsSortOrder SortOrder=PoolsSortOrder.updated_at)
+        public async Task<List<Pool>> SearchPoolNames(string Search, int Limit = 75, int Page = 1, PoolsSortOrder SortOrder = PoolsSortOrder.updated_at)
         {
-            var request = await CreateNewRestRequest(E6RequestType.ListPools);
-
-            // Add the search query
-            request.AddQueryParameter("search[name_matches]",Search);
-            
-            // Add the limit query
-            if(Limit < 1 || Limit > 1000)
+            RestRequest request = await CreateNewRestRequest(E6RequestType.ListPools);
+            if (request == null)
             {
-                LastError = new ErrorDetails()
+                return null;
+            }
+            request.AddQueryParameter("search[name_matches]", Search);
+            if (Limit < 1 || Limit > 1000)
+            {
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: Limit must be between 1 - 1000"
@@ -989,43 +1011,45 @@ namespace e6API
                 return null;
             }
             request.AddQueryParameter("limit", Limit.ToString());
-
-            if(SortOrder != PoolsSortOrder.updated_at)
+            if (SortOrder != PoolsSortOrder.updated_at)
             {
                 request.AddQueryParameter("search[order]", SortOrder.ToString());
             }
-
-            // Send the request
-            var response = await HostClient.ExecuteAsync(request);
-
-            if (response.StatusCode != System.Net.HttpStatusCode.OK && response.StatusCode != System.Net.HttpStatusCode.Created && response.StatusCode != System.Net.HttpStatusCode.Accepted)
+            if (Page < 1)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
-                    ResponseCode = (StatusCode)(int)response.StatusCode,
-                    Message = response.StatusDescription
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: PostId variable is invalid"
                 };
                 return null;
             }
-
-            // Try to deserialize the json into a list of Posts
-            PoolsHolder json;
+            request.AddQueryParameter("page", Page.ToString());
+            RestResponse restResponse = await HostClient.ExecuteAsync(request);
+            if (restResponse.StatusCode != HttpStatusCode.OK && restResponse.StatusCode != HttpStatusCode.Created && restResponse.StatusCode != HttpStatusCode.Accepted)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = (StatusCode)restResponse.StatusCode,
+                    Message = restResponse.StatusDescription
+                };
+                return null;
+            }
+            PoolsHolder poolsHolder;
             try
             {
-                json = JsonConvert.DeserializeObject<PoolsHolder>($"{{Pools:{response.Content}}}");
+                poolsHolder = JsonConvert.DeserializeObject<PoolsHolder>("{Pools:" + restResponse.Content + "}");
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.JsonConversionFailure,
-                    Message = $"Couldn't convert json: {e.Message}"
+                    Message = "Couldn't convert json: " + ex.Message
                 };
                 return null;
             }
-
-            // Return the obtained posts
-            return json.Pools;
+            return poolsHolder.Pools;
         }
 
         /// <summary>
@@ -1037,15 +1061,15 @@ namespace e6API
         /// <returns>A list of Pool classes.</returns>
         public async Task<List<Pool>> SearchPoolDescriptions(string Search, int Limit = 75, PoolsSortOrder SortOrder = PoolsSortOrder.updated_at)
         {
-            var request = await CreateNewRestRequest(E6RequestType.ListPools);
-
-            // Add the search query
+            RestRequest request = await CreateNewRestRequest(E6RequestType.ListPools);
+            if (request == null)
+            {
+                return null;
+            }
             request.AddQueryParameter("search[description_matches]", Search);
-
-            // Add the limit query
             if (Limit < 1 || Limit > 1000)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: Limit must be between 1 - 1000"
@@ -1053,43 +1077,35 @@ namespace e6API
                 return null;
             }
             request.AddQueryParameter("limit", Limit.ToString());
-
             if (SortOrder != PoolsSortOrder.updated_at)
             {
                 request.AddQueryParameter("search[order]", SortOrder.ToString());
             }
-
-            // Send the request
-            var response = await HostClient.ExecuteAsync(request);
-
-            if (response.StatusCode != System.Net.HttpStatusCode.OK && response.StatusCode != System.Net.HttpStatusCode.Created && response.StatusCode != System.Net.HttpStatusCode.Accepted)
+            RestResponse restResponse = await HostClient.ExecuteAsync(request);
+            if (restResponse.StatusCode != HttpStatusCode.OK && restResponse.StatusCode != HttpStatusCode.Created && restResponse.StatusCode != HttpStatusCode.Accepted)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
-                    ResponseCode = (StatusCode)(int)response.StatusCode,
-                    Message = response.StatusDescription
+                    ResponseCode = (StatusCode)restResponse.StatusCode,
+                    Message = restResponse.StatusDescription
                 };
                 return null;
             }
-
-            // Try to deserialize the json into a list of Posts
-            PoolsHolder json;
+            PoolsHolder poolsHolder;
             try
             {
-                json = JsonConvert.DeserializeObject<PoolsHolder>($"{{Pools:{response.Content}}}");
+                poolsHolder = JsonConvert.DeserializeObject<PoolsHolder>("{Pools:" + restResponse.Content + "}");
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.JsonConversionFailure,
-                    Message = $"Couldn't convert json: {e.Message}"
+                    Message = "Couldn't convert json: " + ex.Message
                 };
                 return null;
             }
-
-            // Return the obtained posts
-            return json.Pools;
+            return poolsHolder.Pools;
         }
 
         /// <summary>
@@ -1101,15 +1117,15 @@ namespace e6API
         /// <returns>A list of Pool classes.</returns>
         public async Task<List<Pool>> SearchPoolUserPools(string CreatorName, int Limit = 75, PoolsSortOrder SortOrder = PoolsSortOrder.updated_at)
         {
-            var request = await CreateNewRestRequest(E6RequestType.ListPools);
-
-            // Add the search query
+            RestRequest request = await CreateNewRestRequest(E6RequestType.ListPools);
+            if (request == null)
+            {
+                return null;
+            }
             request.AddQueryParameter("search[creator_name]", CreatorName);
-
-            // Add the limit query
             if (Limit < 1 || Limit > 1000)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: Limit must be between 1 - 1000"
@@ -1117,43 +1133,35 @@ namespace e6API
                 return null;
             }
             request.AddQueryParameter("limit", Limit.ToString());
-
             if (SortOrder != PoolsSortOrder.updated_at)
             {
                 request.AddQueryParameter("search[order]", SortOrder.ToString());
             }
-
-            // Send the request
-            var response = await HostClient.ExecuteAsync(request);
-
-            if (response.StatusCode != System.Net.HttpStatusCode.OK && response.StatusCode != System.Net.HttpStatusCode.Created && response.StatusCode != System.Net.HttpStatusCode.Accepted)
+            RestResponse restResponse = await HostClient.ExecuteAsync(request);
+            if (restResponse.StatusCode != HttpStatusCode.OK && restResponse.StatusCode != HttpStatusCode.Created && restResponse.StatusCode != HttpStatusCode.Accepted)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
-                    ResponseCode = (StatusCode)(int)response.StatusCode,
-                    Message = response.StatusDescription
+                    ResponseCode = (StatusCode)restResponse.StatusCode,
+                    Message = restResponse.StatusDescription
                 };
                 return null;
             }
-
-            // Try to deserialize the json into a list of Posts
-            PoolsHolder json;
+            PoolsHolder poolsHolder;
             try
             {
-                json = JsonConvert.DeserializeObject<PoolsHolder>($"{{Pools:{response.Content}}}");
+                poolsHolder = JsonConvert.DeserializeObject<PoolsHolder>("{Pools:" + restResponse.Content + "}");
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.JsonConversionFailure,
-                    Message = $"Couldn't convert json: {e.Message}"
+                    Message = "Couldn't convert json: " + ex.Message
                 };
                 return null;
             }
-
-            // Return the obtained posts
-            return json.Pools;
+            return poolsHolder.Pools;
         }
 
         /// <summary>
@@ -1165,12 +1173,14 @@ namespace e6API
         /// <returns>A list of Pool classes.</returns>
         public async Task<List<Pool>> SearchPoolUserPools(int CreatorId, int Limit = 75, PoolsSortOrder SortOrder = PoolsSortOrder.updated_at)
         {
-            var request = await CreateNewRestRequest(E6RequestType.ListPools);
-
-            // Add the search query
-            if(CreatorId < 0)
+            RestRequest request = await CreateNewRestRequest(E6RequestType.ListPools);
+            if (request == null)
             {
-                LastError = new ErrorDetails()
+                return null;
+            }
+            if (CreatorId < 0)
+            {
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: Invalid CreatorId"
@@ -1178,11 +1188,9 @@ namespace e6API
                 return null;
             }
             request.AddQueryParameter("search[creator_id]", CreatorId.ToString());
-
-            // Add the limit query
             if (Limit < 1 || Limit > 1000)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: Limit must be between 1 - 1000"
@@ -1190,43 +1198,35 @@ namespace e6API
                 return null;
             }
             request.AddQueryParameter("limit", Limit.ToString());
-
             if (SortOrder != PoolsSortOrder.updated_at)
             {
                 request.AddQueryParameter("search[order]", SortOrder.ToString());
             }
-
-            // Send the request
-            var response = await HostClient.ExecuteAsync(request);
-
-            if (response.StatusCode != System.Net.HttpStatusCode.OK && response.StatusCode != System.Net.HttpStatusCode.Created && response.StatusCode != System.Net.HttpStatusCode.Accepted)
+            RestResponse restResponse = await HostClient.ExecuteAsync(request);
+            if (restResponse.StatusCode != HttpStatusCode.OK && restResponse.StatusCode != HttpStatusCode.Created && restResponse.StatusCode != HttpStatusCode.Accepted)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
-                    ResponseCode = (StatusCode)(int)response.StatusCode,
-                    Message = response.StatusDescription
+                    ResponseCode = (StatusCode)restResponse.StatusCode,
+                    Message = restResponse.StatusDescription
                 };
                 return null;
             }
-
-            // Try to deserialize the json into a list of Posts
-            PoolsHolder json;
+            PoolsHolder poolsHolder;
             try
             {
-                json = JsonConvert.DeserializeObject<PoolsHolder>($"{{Pools:{response.Content}}}");
+                poolsHolder = JsonConvert.DeserializeObject<PoolsHolder>("{Pools:" + restResponse.Content + "}");
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.JsonConversionFailure,
-                    Message = $"Couldn't convert json: {e.Message}"
+                    Message = "Couldn't convert json: " + ex.Message
                 };
                 return null;
             }
-
-            // Return the obtained posts
-            return json.Pools;
+            return poolsHolder.Pools;
         }
 
         /// <summary>
@@ -1236,12 +1236,14 @@ namespace e6API
         /// <returns>A single Pool class</returns>
         public async Task<Pool> GetPoolInfo(int PoolId)
         {
-            var request = await CreateNewRestRequest(E6RequestType.ListPools);
-
-            // Add the search query
+            RestRequest request = await CreateNewRestRequest(E6RequestType.ListPools);
+            if (request == null)
+            {
+                return null;
+            }
             if (PoolId < 0)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: PoolId is invalid"
@@ -1249,50 +1251,41 @@ namespace e6API
                 return null;
             }
             request.AddQueryParameter("search[id]", PoolId.ToString());
-
             request.AddQueryParameter("limit", "1");
-
-            // Send the request
-            var response = await HostClient.ExecuteAsync(request);
-
-            if (response.StatusCode != System.Net.HttpStatusCode.OK && response.StatusCode != System.Net.HttpStatusCode.Created && response.StatusCode != System.Net.HttpStatusCode.Accepted)
+            RestResponse restResponse = await HostClient.ExecuteAsync(request);
+            if (restResponse.StatusCode != HttpStatusCode.OK && restResponse.StatusCode != HttpStatusCode.Created && restResponse.StatusCode != HttpStatusCode.Accepted)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
-                    ResponseCode = (StatusCode)(int)response.StatusCode,
-                    Message = response.StatusDescription
+                    ResponseCode = (StatusCode)restResponse.StatusCode,
+                    Message = restResponse.StatusDescription
                 };
                 return null;
             }
-
-            // Try to deserialize the json into a list of Posts
-            PoolsHolder json;
+            PoolsHolder poolsHolder;
             try
             {
-                json = JsonConvert.DeserializeObject<PoolsHolder>($"{{Pools:{response.Content}}}");
+                poolsHolder = JsonConvert.DeserializeObject<PoolsHolder>("{Pools:" + restResponse.Content + "}");
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.JsonConversionFailure,
-                    Message = $"Couldn't convert json: {e.Message}"
+                    Message = "Couldn't convert json: " + ex.Message
                 };
                 return null;
             }
-
-            if(json.Pools.Count <= 0)
+            if (poolsHolder.Pools.Count <= 0)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.NotFound,
                     Message = $"Couldn't find pool {PoolId}"
                 };
                 return null;
             }
-
-            // Return the obtained posts
-            return json.Pools[0];
+            return poolsHolder.Pools[0];
         }
 
         /// <summary>
@@ -1302,23 +1295,23 @@ namespace e6API
         /// <returns>True on success, false if there is an error/post already favorited.</returns>
         public async Task<bool> FavoritePost(int PostId)
         {
-            var request = await CreateNewRestRequest(E6RequestType.FavoritePost);
-
-            // If the username and api key are not set, you can't favorite
+            RestRequest request = await CreateNewRestRequest(E6RequestType.FavoritePost);
+            if (request == null)
+            {
+                return false;
+            }
             if (Username == null || ApiKey == null)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Must be logged in to favorite a post."
                 };
                 return false;
             }
-
-            // Check if post id is not negative
-            if(PostId < 0)
+            if (PostId < 0)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: PostId is invalid."
@@ -1326,32 +1319,25 @@ namespace e6API
                 return false;
             }
             request.AddQueryParameter("post_id", PostId.ToString());
-
-            // Send the request
-            var response = await HostClient.ExecuteAsync(request);
-
-            // Check if the post returned already favorited
-            if (response.Content.Contains("You have already favorited this post"))
+            RestResponse restResponse = await HostClient.ExecuteAsync(request);
+            if (restResponse.Content.Contains("You have already favorited this post"))
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
-                    ResponseCode = (StatusCode)(int)response.StatusCode,
-                    Message = response.StatusDescription
+                    ResponseCode = (StatusCode)restResponse.StatusCode,
+                    Message = restResponse.StatusDescription
                 };
                 return false;
             }
-
-            // Check for http errors
-            if (response.StatusCode != System.Net.HttpStatusCode.OK && response.StatusCode != System.Net.HttpStatusCode.Created && response.StatusCode != System.Net.HttpStatusCode.Accepted)
+            if (restResponse.StatusCode != HttpStatusCode.OK && restResponse.StatusCode != HttpStatusCode.Created && restResponse.StatusCode != HttpStatusCode.Accepted)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
-                    ResponseCode = (StatusCode)(int)response.StatusCode,
-                    Message = response.StatusDescription
+                    ResponseCode = (StatusCode)restResponse.StatusCode,
+                    Message = restResponse.StatusDescription
                 };
                 return false;
             }
-
             return true;
         }
 
@@ -1362,23 +1348,23 @@ namespace e6API
         /// <returns>True on success, false on failure.</returns>
         public async Task<bool> UnfavoritePost(int PostId)
         {
-            var request = await CreateNewRestRequest(E6RequestType.UnfavoritePost);
-
-            // If the username and api key are not set, you can't favorite
+            RestRequest request = await CreateNewRestRequest(E6RequestType.UnfavoritePost);
+            if (request == null)
+            {
+                return false;
+            }
             if (Username == null || ApiKey == null)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Must be logged in to favorite a post."
                 };
                 return false;
             }
-
-            // Check if post id is not negative
             if (PostId < 0)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: PostId is invalid."
@@ -1386,23 +1372,17 @@ namespace e6API
                 return false;
             }
             request.AddQueryParameter("post_id", PostId.ToString());
-
-
-            HostClient = new RestClient("https://e621.net/favorites/" + PostId.ToString() + ".json");
-            // Send the request
-            var response = await HostClient.ExecuteAsync(request);
-
-            // Check for http errors
-            if (response.StatusCode != System.Net.HttpStatusCode.OK && response.StatusCode != System.Net.HttpStatusCode.Created && response.StatusCode != System.Net.HttpStatusCode.Accepted)
+            HostClient = RestClientFactory("https://e621.net/favorites/" + PostId + ".json");
+            RestResponse restResponse = await HostClient.ExecuteAsync(request);
+            if (restResponse.StatusCode != HttpStatusCode.OK && restResponse.StatusCode != HttpStatusCode.Created && restResponse.StatusCode != HttpStatusCode.Accepted)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
-                    ResponseCode = (StatusCode)(int)response.StatusCode,
-                    Message = response.StatusDescription
+                    ResponseCode = (StatusCode)restResponse.StatusCode,
+                    Message = restResponse.StatusDescription
                 };
                 return false;
             }
-
             return true;
         }
 
@@ -1412,55 +1392,435 @@ namespace e6API
         /// <param name="Search">The string to search for. Use "*" for wildcard searches</param>
         /// <param name="Limit">The max ammount of users to return</param>
         /// <returns>A list of users</returns>
-        public async Task<List<User>> SearchUsers(string Search, int Limit=75)
+        public async Task<List<User>> SearchUsers(string Search, int Limit = 75)
         {
-            var request = await CreateNewRestRequest(E6RequestType.ListUsers);
-
-            request.AddQueryParameter("search[name_matches]", Search);
-
-            if(Limit < 1 || Limit > 1000)
+            RestRequest request = await CreateNewRestRequest(E6RequestType.ListUsers);
+            if (request == null)
             {
-                LastError = new ErrorDetails()
+                return null;
+            }
+            request.AddQueryParameter("search[name_matches]", Search);
+            if (Limit < 1 || Limit > 1000)
+            {
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.MissingOrInvalidParameter,
                     Message = "Invalid Parameter: Limit must be between 1 - 1000"
                 };
                 return null;
             }
-
-            // Send the request
-            var response = await HostClient.ExecuteAsync(request);
-
-            if (response.StatusCode != System.Net.HttpStatusCode.OK && response.StatusCode != System.Net.HttpStatusCode.Created && response.StatusCode != System.Net.HttpStatusCode.Accepted)
+            RestResponse restResponse = await HostClient.ExecuteAsync(request);
+            if (restResponse.StatusCode != HttpStatusCode.OK && restResponse.StatusCode != HttpStatusCode.Created && restResponse.StatusCode != HttpStatusCode.Accepted)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
-                    ResponseCode = (StatusCode)(int)response.StatusCode,
-                    Message = response.StatusDescription
+                    ResponseCode = (StatusCode)restResponse.StatusCode,
+                    Message = restResponse.StatusDescription
                 };
                 return null;
             }
-
-            // Try to deserialize the json into a list of Posts
-            UsersHolder json;
+            UsersHolder usersHolder;
             try
             {
-                json = JsonConvert.DeserializeObject<UsersHolder>($"{{Users:{response.Content}}}");
+                usersHolder = JsonConvert.DeserializeObject<UsersHolder>("{Users:" + restResponse.Content + "}");
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                LastError = new ErrorDetails()
+                LastError = new ErrorDetails
                 {
                     ResponseCode = StatusCode.JsonConversionFailure,
-                    Message = $"Couldn't convert json: {e.Message}"
+                    Message = "Couldn't convert json: " + ex.Message
                 };
                 return null;
             }
-
-            // Return the obtained posts
-            return json.Users;
+            return usersHolder.Users;
         }
 
+        public async Task<List<WikiSearch>> SearchWikiEntries(string Search, int Limit = 75)
+        {
+            RestRequest request = await CreateNewRestRequest(E6RequestType.SearchWiki);
+            if (request == null)
+            {
+                return null;
+            }
+            if (Search == null)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Tag variable is null"
+                };
+                return null;
+            }
+            request.AddQueryParameter("search[title]", Search + "*");
+            if (Limit < 1 || Limit > 320)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Limit must be a value within 1 - 320"
+                };
+                return null;
+            }
+            request.AddQueryParameter("limit", Limit.ToString());
+            request.AddQueryParameter("search[order]", "post_count");
+            request.AddQueryParameter("search[hide_deleted]", "Yes");
+            RestResponse restResponse = await HostClient.ExecuteAsync(request);
+            if (restResponse.StatusCode != HttpStatusCode.OK && restResponse.StatusCode != HttpStatusCode.Created && restResponse.StatusCode != HttpStatusCode.Accepted)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = (StatusCode)restResponse.StatusCode,
+                    Message = restResponse.StatusDescription
+                };
+                return null;
+            }
+            List<WikiSearch> result;
+            try
+            {
+                result = JsonConvert.DeserializeObject<List<WikiSearch>>(restResponse.Content);
+            }
+            catch (Exception ex)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.JsonConversionFailure,
+                    Message = "Couldn't convert json: " + ex.Message
+                };
+                return null;
+            }
+            return result;
+        }
 
+        public async Task<List<Set>> SearchSets(string Search, int Limit = 75, int Page = 1)
+        {
+            RestRequest request = await CreateNewRestRequest(E6RequestType.ListSets);
+            if (request == null)
+            {
+                return null;
+            }
+            if (Search == null)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Tag variable is null"
+                };
+                return null;
+            }
+            request.AddQueryParameter("search[name]", Search + "*");
+            if (Page < 1)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: PostId variable is invalid"
+                };
+                return null;
+            }
+            request.AddQueryParameter("page", Page.ToString());
+            if (Limit < 1 || Limit > 320)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Limit must be a value within 1 - 320"
+                };
+                return null;
+            }
+            request.AddQueryParameter("limit", Limit.ToString());
+            RestResponse restResponse = await HostClient.ExecuteAsync(request);
+            if (restResponse.StatusCode != HttpStatusCode.OK && restResponse.StatusCode != HttpStatusCode.Created && restResponse.StatusCode != HttpStatusCode.Accepted)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = (StatusCode)restResponse.StatusCode,
+                    Message = restResponse.StatusDescription
+                };
+                return null;
+            }
+            List<Set> result;
+            try
+            {
+                result = JsonConvert.DeserializeObject<List<Set>>(restResponse.Content);
+            }
+            catch (Exception ex)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.JsonConversionFailure,
+                    Message = "Couldn't convert json: " + ex.Message
+                };
+                return null;
+            }
+            return result;
+        }
+
+        public async Task<List<Blip>> ListBlips(int Limit = 75)
+        {
+            RestRequest request = await CreateNewRestRequest(E6RequestType.ListBlips);
+            if (request == null)
+            {
+                return null;
+            }
+            if (Limit < 1 || Limit > 320)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Limit must be a value within 1 - 320"
+                };
+                return null;
+            }
+            request.AddQueryParameter("limit", Limit.ToString());
+            RestResponse restResponse = await HostClient.ExecuteAsync(request);
+            if (restResponse.StatusCode != HttpStatusCode.OK && restResponse.StatusCode != HttpStatusCode.Created && restResponse.StatusCode != HttpStatusCode.Accepted)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = (StatusCode)restResponse.StatusCode,
+                    Message = restResponse.StatusDescription
+                };
+                return null;
+            }
+            List<Blip> result;
+            try
+            {
+                result = JsonConvert.DeserializeObject<List<Blip>>(restResponse.Content);
+            }
+            catch (Exception ex)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.JsonConversionFailure,
+                    Message = "Couldn't convert json: " + ex.Message
+                };
+                return null;
+            }
+            return result;
+        }
+
+        public async Task CreateBlips(string body, string response_to = "")
+        {
+            RestRequest request = await CreateNewRestRequest(E6RequestType.CreateBlip);
+            if (request == null)
+            {
+                return;
+            }
+            if (body == null)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: body variable is null"
+                };
+                return;
+            }
+            request.AddQueryParameter("blip[body]", body);
+            if (response_to != "")
+            {
+                request.AddQueryParameter("blip[response_to]", response_to);
+            }
+            if (Username == null || ApiKey == null)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Must be logged in to create a blip."
+                };
+                return;
+            }
+            RestResponse restResponse = await HostClient.ExecuteAsync(request);
+            if (restResponse.StatusCode != HttpStatusCode.OK && restResponse.StatusCode != HttpStatusCode.Created && restResponse.StatusCode != HttpStatusCode.Accepted)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = (StatusCode)restResponse.StatusCode,
+                    Message = restResponse.StatusDescription
+                };
+            }
+        }
+
+        public async Task<bool> CommentOnPost(int PostId, string body)
+        {
+            RestRequest request = await CreateNewRestRequest(E6RequestType.CreateComment);
+            if (request == null)
+            {
+                return false;
+            }
+            if (Username == null || ApiKey == null)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Must be logged in to comment on a post."
+                };
+                return false;
+            }
+            if (PostId < 0)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: PostId is invalid."
+                };
+                return false;
+            }
+            request.AddQueryParameter("comment[post_id]", PostId.ToString());
+            request.AddQueryParameter("comment[body]", body);
+            RestResponse restResponse = await HostClient.ExecuteAsync(request);
+            if (restResponse.StatusCode != HttpStatusCode.OK && restResponse.StatusCode != HttpStatusCode.Created && restResponse.StatusCode != HttpStatusCode.Accepted)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = (StatusCode)restResponse.StatusCode,
+                    Message = restResponse.StatusDescription
+                };
+                return false;
+            }
+            return true;
+        }
+
+        public async Task<int> CreateNewPost(string tags, string rating, string sources, string md5, string url = "", string description = "", string parent_id = "")
+        {
+            RestRequest request = await CreateNewRestRequest(E6RequestType.CreatePost);
+            if (request == null)
+            {
+                return -1;
+            }
+            if (Username == null || ApiKey == null)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Must be logged in to post."
+                };
+                return -1;
+            }
+            request.AddQueryParameter("login", Username);
+            request.AddQueryParameter("api_key", ApiKey);
+            request.AddQueryParameter("upload[tag_string]", tags);
+            request.AddQueryParameter("upload[rating]", rating);
+            request.AddQueryParameter("upload[source]", sources);
+            if (description != "")
+            {
+                request.AddQueryParameter("upload[description]", description);
+            }
+            if (parent_id != "")
+            {
+                request.AddQueryParameter("upload[parent_id]", parent_id);
+            }
+            if (url != "")
+            {
+                request.AddQueryParameter("upload[direct_url]", url);
+                RestResponse restResponse = await HostClient.ExecuteAsync(request);
+                if (restResponse.StatusCode != HttpStatusCode.OK && restResponse.StatusCode != HttpStatusCode.Created && restResponse.StatusCode != HttpStatusCode.Accepted)
+                {
+                    LastError = new ErrorDetails
+                    {
+                        ResponseCode = (StatusCode)restResponse.StatusCode,
+                        Message = restResponse.StatusDescription
+                    };
+                    return -1;
+                }
+                CreatePostResponse createPostResponse;
+                try
+                {
+                    createPostResponse = JsonConvert.DeserializeObject<CreatePostResponse>(restResponse.Content);
+                }
+                catch (Exception ex)
+                {
+                    LastError = new ErrorDetails
+                    {
+                        ResponseCode = StatusCode.JsonConversionFailure,
+                        Message = "Couldn't convert json: " + ex.Message
+                    };
+                    return -1;
+                }
+                return createPostResponse.post_id;
+            }
+            LastError = new ErrorDetails
+            {
+                ResponseCode = StatusCode.MissingOrInvalidParameter,
+                Message = "URL required!"
+            };
+            return -1;
+        }
+
+        public async Task<List<Post>> GetPopularPosts(PopularPosts Range, int Limit = 75, int Page = 1)
+        {
+            RestRequest request = await CreateNewRestRequest(E6RequestType.ListPosts);
+            if (request == null)
+            {
+                return null;
+            }
+            DateTime now = DateTime.Now;
+            string value = $"{now.Year}-{now.Month}-{now.Day}";
+            switch (Range)
+            {
+            case PopularPosts.Day:
+                HostClient = RestClientFactory("https://e621.net/explore/posts/popular?");
+                request.AddQueryParameter("date", value);
+                request.AddQueryParameter("scale", "day");
+                break;
+            case PopularPosts.Week:
+                HostClient = RestClientFactory("https://e621.net/explore/posts/popular?");
+                request.AddQueryParameter("date", value);
+                request.AddQueryParameter("scale", "week");
+                break;
+            case PopularPosts.Month:
+                HostClient = RestClientFactory("https://e621.net/explore/posts/popular?");
+                request.AddQueryParameter("date", value);
+                request.AddQueryParameter("scale", "month");
+                break;
+            }
+            if (Limit < 1 || Limit > 320)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Limit must be a value within 1 - 320"
+                };
+                return null;
+            }
+            request.AddQueryParameter("limit", Limit.ToString());
+            if (Page < 1 || Page > 750)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Page must be a value within 1 - 750"
+                };
+                return null;
+            }
+            request.AddQueryParameter("page", Page.ToString());
+            RestResponse restResponse = await HostClient.ExecuteAsync(request);
+            if (restResponse.StatusCode != HttpStatusCode.OK && restResponse.StatusCode != HttpStatusCode.Created && restResponse.StatusCode != HttpStatusCode.Accepted)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = (StatusCode)restResponse.StatusCode,
+                    Message = restResponse.StatusDescription
+                };
+                return null;
+            }
+            List<Post> posts;
+            try
+            {
+                posts = JsonConvert.DeserializeObject<List<Post>>(restResponse.Content);
+            }
+            catch (Exception ex)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.JsonConversionFailure,
+                    Message = "Couldn't convert json: " + ex.Message
+                };
+                return null;
+            }
+            return posts;
+        }
+
+        
     }
 }

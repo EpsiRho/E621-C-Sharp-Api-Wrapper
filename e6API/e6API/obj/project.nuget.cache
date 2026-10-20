@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "LXmERR8N0MK/G9DI060ENhoCHg09HzrIlf9ut3rVD8GdCgsDTNb2TCkPcwDQ6mMezjabcVYoOLzanWtn138I6A==",
+  "dgSpecHash": "yAyq5xx/Bqg=",
   "success": true,
-  "projectFilePath": "C:\\Users\\jhset\\Documents\\GitHub\\E621-C-Sharp-Api-Wrapper\\e6API\\e6API\\e6API.csproj",
+  "projectFilePath": "D:\\Documents\\GitHub\\E621-C-Sharp-Api-Wrapper\\e6API\\e6API\\e6API.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\jhset\\.nuget\\packages\\microsoft.bcl.asyncinterfaces\\5.0.0\\microsoft.bcl.asyncinterfaces.5.0.0.nupkg.sha512",
     "C:\\Users\\jhset\\.nuget\\packages\\microsoft.netcore.platforms\\1.1.0\\microsoft.netcore.platforms.1.1.0.nupkg.sha512",
@@ -17,5 +17,18 @@
     "C:\\Users\\jhset\\.nuget\\packages\\system.text.json\\5.0.0\\system.text.json.5.0.0.nupkg.sha512",
     "C:\\Users\\jhset\\.nuget\\packages\\system.threading.tasks.extensions\\4.5.4\\system.threading.tasks.extensions.4.5.4.nupkg.sha512"
   ],
-  "logs": []
+  "logs": [
+    {
+      "code": "NU1902",
+      "level": "Warning",
+      "message": "Package 'RestSharp' 107.3.0 has a known moderate severity vulnerability, https://github.com/advisories/GHSA-4rr6-2v9v-wcpc",
+      "projectPath": "D:\\Documents\\GitHub\\E621-C-Sharp-Api-Wrapper\\e6API\\e6API\\e6API.csproj",
+      "warningLevel": 1,
+      "filePath": "D:\\Documents\\GitHub\\E621-C-Sharp-Api-Wrapper\\e6API\\e6API\\e6API.csproj",
+      "libraryId": "RestSharp",
+      "targetGraphs": [
+        "netstandard2.0"
+      ]
+    }
+  ]
 }
