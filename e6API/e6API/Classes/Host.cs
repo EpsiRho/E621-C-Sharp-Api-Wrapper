@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using RestSharp;
 
 namespace e6API
@@ -151,6 +152,16 @@ namespace e6API
                 restRequest = new RestRequest();
                 restRequest.Method = Method.Delete;
                 break;
+            case E6RequestType.ListNoteVersions:
+                HostClient = RestClientFactory("https://e621.net/note_versions.json?");
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Get;
+                break;
+            case E6RequestType.ListPoolVersions:
+                HostClient = RestClientFactory("https://e621.net/pool_versions.json?");
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Get;
+                break;
             case E6RequestType.ListNotes:
                 HostClient = RestClientFactory("https://e621.net/notes.json?");
                 restRequest = new RestRequest();
@@ -201,8 +212,25 @@ namespace e6API
             case E6RequestType.UpdatePost:
                 restRequest = new RestRequest();
                 restRequest.Method = Method.Patch;
+                restRequest.AddQueryParameter("v2", "true");
                 break;
             case E6RequestType.VoteOnPost:
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Post;
+                break;
+            case E6RequestType.UpdateComment:
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Put;
+                break;
+            case E6RequestType.DeleteComment:
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Delete;
+                break;
+            case E6RequestType.HideComment:
+                restRequest = new RestRequest();
+                restRequest.Method = Method.Post;
+                break;
+            case E6RequestType.UnhideComment:
                 restRequest = new RestRequest();
                 restRequest.Method = Method.Post;
                 break;
@@ -1822,5 +1850,1479 @@ namespace e6API
         }
 
         
+        /// <summary>
+        /// Flags a post using a server-defined reason name. Some reasons require ParentId or Note.
+        /// </summary>
+        public async Task<bool> FlagPost(int PostId, string ReasonName, int? ParentId = null, string Note = null)
+        {
+            RestRequest request = await CreateNewRestRequest(E6RequestType.CreatePostFlag);
+            if (request == null)
+            {
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(ApiKey))
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Must be logged in to perform this operation."
+                };
+                return false;
+            }
+            if (PostId <= 0)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: PostId must be positive"
+                };
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(ReasonName))
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: ReasonName is required"
+                };
+                return false;
+            }
+            if (ParentId.HasValue && (ParentId.Value <= 0 || ParentId.Value == PostId))
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: ParentId must be a different positive post ID"
+                };
+                return false;
+            }
+            request.AddQueryParameter("post_flag[post_id]", PostId.ToString());
+            request.AddQueryParameter("post_flag[reason_name]", ReasonName);
+            if (ParentId != null)
+            {
+                request.AddQueryParameter("post_flag[parent_id]", ParentId.Value.ToString());
+            }
+            if (Note != null)
+            {
+                request.AddQueryParameter("post_flag[note]", Note);
+            }
+            RestResponse response = await HostClient.ExecuteAsync(request);
+            if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Created && response.StatusCode != HttpStatusCode.Accepted && response.StatusCode != HttpStatusCode.NoContent)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = (StatusCode)response.StatusCode,
+                    Message = response.StatusDescription
+                };
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Lists flag records, optionally filtered by post, reason, resolution, creator, or post tags.
+        /// </summary>
+        public async Task<List<PostFlag>> GetPostFlags(int? PostId = null, int Limit = 75, int Page = 1, string Reason = null, bool? IsResolved = null, string Type = null, int? CreatorId = null, string CreatorName = null, string PostTags = null)
+        {
+            RestRequest request = await CreateNewRestRequest(E6RequestType.ListPostFlags);
+            if (request == null)
+            {
+                return null;
+            }
+            if (PostId.HasValue && PostId.Value <= 0)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: PostId must be positive"
+                };
+                return null;
+            }
+            if (CreatorId.HasValue && CreatorId.Value <= 0)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: CreatorId must be positive"
+                };
+                return null;
+            }
+            if (Type != null && Type != "flag" && Type != "deletion")
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Type must be flag or deletion"
+                };
+                return null;
+            }
+            if (Limit < 1 || Limit > 320)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Limit must be a value within 1 - 320"
+                };
+                return null;
+            }
+            if (Page < 1)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Page must be at least 1"
+                };
+                return null;
+            }
+            request.AddQueryParameter("limit", Limit.ToString());
+            request.AddQueryParameter("page", Page.ToString());
+            if (PostId != null)
+            {
+                request.AddQueryParameter("search[post_id]", PostId.Value.ToString());
+            }
+            if (Reason != null)
+            {
+                request.AddQueryParameter("search[reason_matches]", Reason);
+            }
+            if (IsResolved != null)
+            {
+                request.AddQueryParameter("search[is_resolved]", IsResolved.Value ? "true" : "false");
+            }
+            if (Type != null)
+            {
+                request.AddQueryParameter("search[type]", Type);
+            }
+            if (CreatorId != null)
+            {
+                request.AddQueryParameter("search[creator_id]", CreatorId.Value.ToString());
+            }
+            if (CreatorName != null)
+            {
+                request.AddQueryParameter("search[creator_name]", CreatorName);
+            }
+            if (PostTags != null)
+            {
+                request.AddQueryParameter("search[post_tags_match]", PostTags);
+            }
+            RestResponse response = await HostClient.ExecuteAsync(request);
+            if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Created && response.StatusCode != HttpStatusCode.Accepted)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = (StatusCode)response.StatusCode,
+                    Message = response.StatusDescription
+                };
+                return null;
+            }
+            List<PostFlag> json;
+            try
+            {
+                json = JsonConvert.DeserializeObject<List<PostFlag>>(response.Content);
+                if (json == null)
+                {
+                    throw new JsonSerializationException("Expected a JSON array.");
+                }
+            }
+            catch (Exception e)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.JsonConversionFailure,
+                    Message = "Couldn't convert json: " + e.Message
+                };
+                return null;
+            }
+            return json;
+        }
+
+        /// <summary>Lists V2 posts with status:flagged, using numbered pages.</summary>
+        public async Task<List<Post>> GetFlaggedPosts(string Tags = "", int Limit = 75, int Page = 1)
+        {
+            if (Tags == null)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Tag variable is null"
+                };
+                return null;
+            }
+            return await GetPosts((Tags + " status:flagged").Trim(), Limit, Page);
+        }
+
+        /// <summary>Lists V2 flagged posts before or after a post ID.</summary>
+        public async Task<List<Post>> GetFlaggedPosts(string Tags, char PaginationChar, int PostId, int Limit = 75)
+        {
+            if (Tags == null)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Tag variable is null"
+                };
+                return null;
+            }
+            return await GetPosts((Tags + " status:flagged").Trim(), PaginationChar, PostId, Limit);
+        }
+
+        /// <summary>
+        /// Updates supplied post fields. Null omits a field; empty strings clear text fields and ParentId = 0 clears the parent. Old fields enable conflict checks.
+        /// </summary>
+        public async Task<bool> UpdatePost(int PostId, string Tags = null, string Rating = null, string Sources = null, string Description = null, int? ParentId = null, string EditReason = null, string TagDiff = null, string SourceDiff = null, string OldTags = null, string OldRating = null, string OldSources = null, string OldDescription = null, int? OldParentId = null)
+        {
+            RestRequest request = await CreateNewRestRequest(E6RequestType.UpdatePost);
+            if (request == null)
+            {
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(ApiKey))
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Must be logged in to perform this operation."
+                };
+                return false;
+            }
+            if (PostId <= 0)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: PostId must be positive"
+                };
+                return false;
+            }
+            if (Rating != null && Rating != "s" && Rating != "q" && Rating != "e")
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Rating must be s, q, or e"
+                };
+                return false;
+            }
+            if (OldRating != null && OldRating != "s" && OldRating != "q" && OldRating != "e")
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: OldRating must be s, q, or e"
+                };
+                return false;
+            }
+            if (ParentId.HasValue && (ParentId.Value < 0 || ParentId.Value == PostId))
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: ParentId must be zero or a different positive post ID"
+                };
+                return false;
+            }
+            if (OldParentId.HasValue && OldParentId.Value < 0)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: OldParentId must be zero or positive"
+                };
+                return false;
+            }
+            if (Tags == null && Rating == null && Sources == null && Description == null && ParentId == null && TagDiff == null && SourceDiff == null)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: At least one post field must be supplied"
+                };
+                return false;
+            }
+            HostClient = RestClientFactory("https://e621.net/posts/" + PostId + ".json");
+            if (Tags != null)
+            {
+                request.AddQueryParameter("post[tag_string]", Tags);
+            }
+            if (Rating != null)
+            {
+                request.AddQueryParameter("post[rating]", Rating);
+            }
+            if (Sources != null)
+            {
+                request.AddQueryParameter("post[source]", Sources);
+            }
+            if (Description != null)
+            {
+                request.AddQueryParameter("post[description]", Description);
+            }
+            if (ParentId != null)
+            {
+                request.AddQueryParameter("post[parent_id]", ParentId.Value == 0 ? "" : ParentId.Value.ToString());
+            }
+            if (EditReason != null)
+            {
+                request.AddQueryParameter("post[edit_reason]", EditReason);
+            }
+            if (TagDiff != null)
+            {
+                request.AddQueryParameter("post[tag_string_diff]", TagDiff);
+            }
+            if (SourceDiff != null)
+            {
+                request.AddQueryParameter("post[source_diff]", SourceDiff);
+            }
+            if (OldTags != null)
+            {
+                request.AddQueryParameter("post[old_tag_string]", OldTags);
+            }
+            if (OldRating != null)
+            {
+                request.AddQueryParameter("post[old_rating]", OldRating);
+            }
+            if (OldSources != null)
+            {
+                request.AddQueryParameter("post[old_source]", OldSources);
+            }
+            if (OldDescription != null)
+            {
+                request.AddQueryParameter("post[old_description]", OldDescription);
+            }
+            if (OldParentId != null)
+            {
+                request.AddQueryParameter("post[old_parent_id]", OldParentId.Value == 0 ? "" : OldParentId.Value.ToString());
+            }
+            RestResponse response = await HostClient.ExecuteAsync(request);
+            if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Created && response.StatusCode != HttpStatusCode.Accepted && response.StatusCode != HttpStatusCode.NoContent)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = (StatusCode)response.StatusCode,
+                    Message = response.StatusDescription
+                };
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Lists tag aliases matching either name. The cursor PostId parameter is an alias record ID, matching the existing tag-list convention.
+        /// </summary>
+        public async Task<List<TagAlias>> GetTagAliases(string Search = "", int Limit = 75, int Page = 1, string Status = null, string Antecedent = null, string Consequent = null)
+        {
+            RestRequest request = await CreateNewRestRequest(E6RequestType.ListTagAliases);
+            if (request == null)
+            {
+                return null;
+            }
+            if (Search == null)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Search is null"
+                };
+                return null;
+            }
+            if (Limit < 1 || Limit > 320)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Limit must be a value within 1 - 320"
+                };
+                return null;
+            }
+            if (Page < 1)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Page must be at least 1"
+                };
+                return null;
+            }
+            request.AddQueryParameter("page", Page.ToString());
+            request.AddQueryParameter("search[name_matches]", Search);
+            request.AddQueryParameter("limit", Limit.ToString());
+            if (Status != null)
+            {
+                request.AddQueryParameter("search[status]", Status);
+            }
+            if (Antecedent != null)
+            {
+                request.AddQueryParameter("search[antecedent_name]", Antecedent);
+            }
+            if (Consequent != null)
+            {
+                request.AddQueryParameter("search[consequent_name]", Consequent);
+            }
+            RestResponse response = await HostClient.ExecuteAsync(request);
+            if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Created && response.StatusCode != HttpStatusCode.Accepted)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = (StatusCode)response.StatusCode,
+                    Message = response.StatusDescription
+                };
+                return null;
+            }
+            List<TagAlias> json;
+            try
+            {
+                json = JsonConvert.DeserializeObject<List<TagAlias>>(response.Content);
+                if (json == null)
+                {
+                    throw new JsonSerializationException("Expected a JSON array.");
+                }
+            }
+            catch (Exception e)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.JsonConversionFailure,
+                    Message = "Couldn't convert json: " + e.Message
+                };
+                return null;
+            }
+            return json;
+        }
+
+        /// <summary>
+        /// Lists tag aliases matching either name. The cursor PostId parameter is an alias record ID, matching the existing tag-list convention.
+        /// </summary>
+        public async Task<List<TagAlias>> GetTagAliases(string Search, char PaginationChar, int PostId, int Limit = 75, string Status = null, string Antecedent = null, string Consequent = null)
+        {
+            RestRequest request = await CreateNewRestRequest(E6RequestType.ListTagAliases);
+            if (request == null)
+            {
+                return null;
+            }
+            if (Search == null)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Search is null"
+                };
+                return null;
+            }
+            if (Limit < 1 || Limit > 320)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Limit must be a value within 1 - 320"
+                };
+                return null;
+            }
+            if (PaginationChar != 'a' && PaginationChar != 'b')
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Invalid PaginationChar"
+                };
+                return null;
+            }
+            if (PostId <= 0)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: PostId must be positive"
+                };
+                return null;
+            }
+            request.AddQueryParameter("page", PaginationChar.ToString() + PostId);
+            request.AddQueryParameter("search[name_matches]", Search);
+            request.AddQueryParameter("limit", Limit.ToString());
+            if (Status != null)
+            {
+                request.AddQueryParameter("search[status]", Status);
+            }
+            if (Antecedent != null)
+            {
+                request.AddQueryParameter("search[antecedent_name]", Antecedent);
+            }
+            if (Consequent != null)
+            {
+                request.AddQueryParameter("search[consequent_name]", Consequent);
+            }
+            RestResponse response = await HostClient.ExecuteAsync(request);
+            if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Created && response.StatusCode != HttpStatusCode.Accepted)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = (StatusCode)response.StatusCode,
+                    Message = response.StatusDescription
+                };
+                return null;
+            }
+            List<TagAlias> json;
+            try
+            {
+                json = JsonConvert.DeserializeObject<List<TagAlias>>(response.Content);
+                if (json == null)
+                {
+                    throw new JsonSerializationException("Expected a JSON array.");
+                }
+            }
+            catch (Exception e)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.JsonConversionFailure,
+                    Message = "Couldn't convert json: " + e.Message
+                };
+                return null;
+            }
+            return json;
+        }
+
+        /// <summary>
+        /// Lists notes with optional post, body, active state, creator, and post-tag filters.
+        /// </summary>
+        public async Task<List<Note>> GetNotes(int? PostId = null, int Limit = 75, int Page = 1, string Body = null, bool? IsActive = null, int? CreatorId = null, string CreatorName = null, string PostTags = null)
+        {
+            RestRequest request = await CreateNewRestRequest(E6RequestType.ListNotes);
+            if (request == null)
+            {
+                return null;
+            }
+            if (PostId.HasValue && PostId.Value <= 0)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: PostId must be positive"
+                };
+                return null;
+            }
+            if (CreatorId.HasValue && CreatorId.Value <= 0)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: CreatorId must be positive"
+                };
+                return null;
+            }
+            if (Limit < 1 || Limit > 320)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Limit must be a value within 1 - 320"
+                };
+                return null;
+            }
+            if (Page < 1)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Page must be at least 1"
+                };
+                return null;
+            }
+            request.AddQueryParameter("limit", Limit.ToString());
+            request.AddQueryParameter("page", Page.ToString());
+            if (PostId != null)
+            {
+                request.AddQueryParameter("search[post_id]", PostId.Value.ToString());
+            }
+            if (Body != null)
+            {
+                request.AddQueryParameter("search[body_matches]", Body);
+            }
+            if (IsActive != null)
+            {
+                request.AddQueryParameter("search[is_active]", IsActive.Value ? "true" : "false");
+            }
+            if (CreatorId != null)
+            {
+                request.AddQueryParameter("search[creator_id]", CreatorId.Value.ToString());
+            }
+            if (CreatorName != null)
+            {
+                request.AddQueryParameter("search[creator_name]", CreatorName);
+            }
+            if (PostTags != null)
+            {
+                request.AddQueryParameter("search[post_tags_match]", PostTags);
+            }
+            RestResponse response = await HostClient.ExecuteAsync(request);
+            if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Created && response.StatusCode != HttpStatusCode.Accepted)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = (StatusCode)response.StatusCode,
+                    Message = response.StatusDescription
+                };
+                return null;
+            }
+            List<Note> json;
+            try
+            {
+                json = JsonConvert.DeserializeObject<List<Note>>(response.Content);
+                if (json == null)
+                {
+                    throw new JsonSerializationException("Expected a JSON array.");
+                }
+            }
+            catch (Exception e)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.JsonConversionFailure,
+                    Message = "Couldn't convert json: " + e.Message
+                };
+                return null;
+            }
+            return json;
+        }
+
+        /// <summary>
+        /// Creates a note and returns its ID, or -1 on failure. Handles the server response containing JSON-encoded note data.
+        /// </summary>
+        public async Task<int> CreateNote(int PostId, int X, int Y, int Width, int Height, string Body)
+        {
+            RestRequest request = await CreateNewRestRequest(E6RequestType.CreateNote);
+            if (request == null)
+            {
+                return -1;
+            }
+            if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(ApiKey))
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Must be logged in to perform this operation."
+                };
+                return -1;
+            }
+            if (PostId <= 0)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: PostId must be positive"
+                };
+                return -1;
+            }
+            if (X < 0 || Y < 0 || Width <= 0 || Height <= 0)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Note coordinates must be nonnegative and dimensions positive"
+                };
+                return -1;
+            }
+            if (string.IsNullOrWhiteSpace(Body))
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Body is required"
+                };
+                return -1;
+            }
+            request.AddQueryParameter("note[post_id]", PostId.ToString());
+            request.AddQueryParameter("note[x]", X.ToString());
+            request.AddQueryParameter("note[y]", Y.ToString());
+            request.AddQueryParameter("note[width]", Width.ToString());
+            request.AddQueryParameter("note[height]", Height.ToString());
+            request.AddQueryParameter("note[body]", Body);
+            RestResponse response = await HostClient.ExecuteAsync(request);
+            if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Created && response.StatusCode != HttpStatusCode.Accepted)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = (StatusCode)response.StatusCode,
+                    Message = response.StatusDescription
+                };
+                return -1;
+            }
+            Note json;
+            try
+            {
+                JObject envelope = JObject.Parse(response.Content);
+                JToken note = envelope["note"] ?? envelope;
+                json = note.Type == JTokenType.String
+                    ? JsonConvert.DeserializeObject<Note>(note.Value<string>())
+                    : note.ToObject<Note>();
+                if (json == null || json.id <= 0)
+                {
+                    throw new JsonSerializationException("The response did not contain a created note ID.");
+                }
+            }
+            catch (Exception e)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.JsonConversionFailure,
+                    Message = "Couldn't convert json: " + e.Message
+                };
+                return -1;
+            }
+            return json.id;
+        }
+
+        /// <summary>
+        /// Updates only the supplied note text or rectangle fields.
+        /// </summary>
+        public async Task<bool> UpdateNote(int NoteId, string Body = null, int? X = null, int? Y = null, int? Width = null, int? Height = null)
+        {
+            RestRequest request = await CreateNewRestRequest(E6RequestType.UpdateNote);
+            if (request == null)
+            {
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(ApiKey))
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Must be logged in to perform this operation."
+                };
+                return false;
+            }
+            if (NoteId <= 0)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: NoteId must be positive"
+                };
+                return false;
+            }
+            if (Body == null && X == null && Y == null && Width == null && Height == null)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: At least one note field must be supplied"
+                };
+                return false;
+            }
+            if (Body != null && string.IsNullOrWhiteSpace(Body))
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Body cannot be blank"
+                };
+                return false;
+            }
+            if ((X.HasValue && X.Value < 0) || (Y.HasValue && Y.Value < 0) || (Width.HasValue && Width.Value <= 0) || (Height.HasValue && Height.Value <= 0))
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Note coordinates must be nonnegative and dimensions positive"
+                };
+                return false;
+            }
+            HostClient = RestClientFactory("https://e621.net/notes/" + NoteId + ".json");
+            if (Body != null)
+            {
+                request.AddQueryParameter("note[body]", Body);
+            }
+            if (X != null)
+            {
+                request.AddQueryParameter("note[x]", X.Value.ToString());
+            }
+            if (Y != null)
+            {
+                request.AddQueryParameter("note[y]", Y.Value.ToString());
+            }
+            if (Width != null)
+            {
+                request.AddQueryParameter("note[width]", Width.Value.ToString());
+            }
+            if (Height != null)
+            {
+                request.AddQueryParameter("note[height]", Height.Value.ToString());
+            }
+            RestResponse response = await HostClient.ExecuteAsync(request);
+            if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Created && response.StatusCode != HttpStatusCode.Accepted && response.StatusCode != HttpStatusCode.NoContent)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = (StatusCode)response.StatusCode,
+                    Message = response.StatusDescription
+                };
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Deletes a note by marking it inactive.
+        /// </summary>
+        public async Task<bool> DeleteNote(int NoteId)
+        {
+            RestRequest request = await CreateNewRestRequest(E6RequestType.DeleteNote);
+            if (request == null)
+            {
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(ApiKey))
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Must be logged in to perform this operation."
+                };
+                return false;
+            }
+            if (NoteId <= 0)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: NoteId must be positive"
+                };
+                return false;
+            }
+            HostClient = RestClientFactory("https://e621.net/notes/" + NoteId + ".json");
+            RestResponse response = await HostClient.ExecuteAsync(request);
+            if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Created && response.StatusCode != HttpStatusCode.Accepted && response.StatusCode != HttpStatusCode.NoContent)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = (StatusCode)response.StatusCode,
+                    Message = response.StatusDescription
+                };
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Permanently deletes a comment. The server requires an administrator account.
+        /// </summary>
+        public async Task<bool> DeleteComment(int CommentId)
+        {
+            RestRequest request = await CreateNewRestRequest(E6RequestType.DeleteComment);
+            if (request == null)
+            {
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(ApiKey))
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Must be logged in to perform this operation."
+                };
+                return false;
+            }
+            if (CommentId <= 0)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: CommentId must be positive"
+                };
+                return false;
+            }
+            HostClient = RestClientFactory("https://e621.net/comments/" + CommentId + ".json");
+            RestResponse response = await HostClient.ExecuteAsync(request);
+            if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Created && response.StatusCode != HttpStatusCode.Accepted && response.StatusCode != HttpStatusCode.NoContent)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = (StatusCode)response.StatusCode,
+                    Message = response.StatusDescription
+                };
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Reverts to a version record ID, not the sequential version number.
+        /// </summary>
+        public async Task<bool> RevertNote(int NoteId, int VersionId)
+        {
+            RestRequest request = await CreateNewRestRequest(E6RequestType.RevertNote);
+            if (request == null)
+            {
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(ApiKey))
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Must be logged in to perform this operation."
+                };
+                return false;
+            }
+            if (NoteId <= 0)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: NoteId must be positive"
+                };
+                return false;
+            }
+            if (VersionId <= 0)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: VersionId must be positive"
+                };
+                return false;
+            }
+            HostClient = RestClientFactory("https://e621.net/notes/" + NoteId + "/revert.json");
+            request.AddQueryParameter("version_id", VersionId.ToString());
+            RestResponse response = await HostClient.ExecuteAsync(request);
+            if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Created && response.StatusCode != HttpStatusCode.Accepted && response.StatusCode != HttpStatusCode.NoContent)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = (StatusCode)response.StatusCode,
+                    Message = response.StatusDescription
+                };
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Reverts to a version record ID, not the sequential version number.
+        /// </summary>
+        public async Task<bool> RevertPool(int PoolId, long VersionId)
+        {
+            RestRequest request = await CreateNewRestRequest(E6RequestType.RevertPool);
+            if (request == null)
+            {
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(ApiKey))
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Must be logged in to perform this operation."
+                };
+                return false;
+            }
+            if (PoolId <= 0)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: PoolId must be positive"
+                };
+                return false;
+            }
+            if (VersionId <= 0)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: VersionId must be positive"
+                };
+                return false;
+            }
+            HostClient = RestClientFactory("https://e621.net/pools/" + PoolId + "/revert.json");
+            request.AddQueryParameter("version_id", VersionId.ToString());
+            RestResponse response = await HostClient.ExecuteAsync(request);
+            if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Created && response.StatusCode != HttpStatusCode.Accepted && response.StatusCode != HttpStatusCode.NoContent)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = (StatusCode)response.StatusCode,
+                    Message = response.StatusDescription
+                };
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Lists revision records whose IDs can be passed to the corresponding revert method.
+        /// </summary>
+        public async Task<List<NoteVersion>> GetNoteVersions(int NoteId, int Limit = 75, int Page = 1)
+        {
+            RestRequest request = await CreateNewRestRequest(E6RequestType.ListNoteVersions);
+            if (request == null)
+            {
+                return null;
+            }
+            if (NoteId <= 0)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: NoteId must be positive"
+                };
+                return null;
+            }
+            if (Limit < 1 || Limit > 320)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Limit must be a value within 1 - 320"
+                };
+                return null;
+            }
+            if (Page < 1)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Page must be at least 1"
+                };
+                return null;
+            }
+            request.AddQueryParameter("search[note_id]", NoteId.ToString());
+            request.AddQueryParameter("limit", Limit.ToString());
+            request.AddQueryParameter("page", Page.ToString());
+            RestResponse response = await HostClient.ExecuteAsync(request);
+            if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Created && response.StatusCode != HttpStatusCode.Accepted)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = (StatusCode)response.StatusCode,
+                    Message = response.StatusDescription
+                };
+                return null;
+            }
+            List<NoteVersion> json;
+            try
+            {
+                json = JsonConvert.DeserializeObject<List<NoteVersion>>(response.Content);
+                if (json == null)
+                {
+                    throw new JsonSerializationException("Expected a JSON array.");
+                }
+            }
+            catch (Exception e)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.JsonConversionFailure,
+                    Message = "Couldn't convert json: " + e.Message
+                };
+                return null;
+            }
+            return json;
+        }
+
+        /// <summary>
+        /// Lists revision records whose IDs can be passed to the corresponding revert method.
+        /// </summary>
+        public async Task<List<PoolVersion>> GetPoolVersions(int PoolId, int Limit = 75, int Page = 1)
+        {
+            RestRequest request = await CreateNewRestRequest(E6RequestType.ListPoolVersions);
+            if (request == null)
+            {
+                return null;
+            }
+            if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(ApiKey))
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Must be logged in to perform this operation."
+                };
+                return null;
+            }
+            if (PoolId <= 0)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: PoolId must be positive"
+                };
+                return null;
+            }
+            if (Limit < 1 || Limit > 320)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Limit must be a value within 1 - 320"
+                };
+                return null;
+            }
+            if (Page < 1)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Page must be at least 1"
+                };
+                return null;
+            }
+            request.AddQueryParameter("search[pool_id]", PoolId.ToString());
+            request.AddQueryParameter("limit", Limit.ToString());
+            request.AddQueryParameter("page", Page.ToString());
+            RestResponse response = await HostClient.ExecuteAsync(request);
+            if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Created && response.StatusCode != HttpStatusCode.Accepted)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = (StatusCode)response.StatusCode,
+                    Message = response.StatusDescription
+                };
+                return null;
+            }
+            List<PoolVersion> json;
+            try
+            {
+                json = JsonConvert.DeserializeObject<List<PoolVersion>>(response.Content);
+                if (json == null)
+                {
+                    throw new JsonSerializationException("Expected a JSON array.");
+                }
+            }
+            catch (Exception e)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.JsonConversionFailure,
+                    Message = "Couldn't convert json: " + e.Message
+                };
+                return null;
+            }
+            return json;
+        }
+
+        /// <summary>
+        /// Creates a series or collection pool and returns its ID, or -1 on failure.
+        /// </summary>
+        public async Task<int> CreatePool(string Name, string Description = "", string Category = "series", int[] PostIds = null, bool IsActive = true)
+        {
+            RestRequest request = await CreateNewRestRequest(E6RequestType.CreatePool);
+            if (request == null)
+            {
+                return -1;
+            }
+            if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(ApiKey))
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Must be logged in to perform this operation."
+                };
+                return -1;
+            }
+            if (string.IsNullOrWhiteSpace(Name))
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Name is required"
+                };
+                return -1;
+            }
+            if (Category != "series" && Category != "collection")
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Category must be series or collection"
+                };
+                return -1;
+            }
+            if (PostIds != null && Array.Exists(PostIds, id => id <= 0))
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: PostIds must contain positive post IDs"
+                };
+                return -1;
+            }
+            request.AddQueryParameter("pool[name]", Name);
+            request.AddQueryParameter("pool[description]", Description ?? "");
+            request.AddQueryParameter("pool[category]", Category);
+            request.AddQueryParameter("pool[is_active]", IsActive ? "true" : "false");
+            if (PostIds != null)
+            {
+                request.AddQueryParameter("pool[post_ids_string]", string.Join(" ", PostIds));
+            }
+            RestResponse response = await HostClient.ExecuteAsync(request);
+            if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Created && response.StatusCode != HttpStatusCode.Accepted)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = (StatusCode)response.StatusCode,
+                    Message = response.StatusDescription
+                };
+                return -1;
+            }
+            Pool json;
+            try
+            {
+                json = JsonConvert.DeserializeObject<Pool>(response.Content);
+                if (json == null || json.id <= 0)
+                {
+                    throw new JsonSerializationException("The response did not contain a created pool ID.");
+                }
+            }
+            catch (Exception e)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.JsonConversionFailure,
+                    Message = "Couldn't convert json: " + e.Message
+                };
+                return -1;
+            }
+            return json.id;
+        }
+
+        /// <summary>
+        /// Updates supplied pool fields. Null preserves a field, and an empty PostIds array removes all posts from the pool.
+        /// </summary>
+        public async Task<bool> UpdatePool(int PoolId, string Name = null, string Description = null, string Category = null, int[] PostIds = null, bool? IsActive = null)
+        {
+            RestRequest request = await CreateNewRestRequest(E6RequestType.UpdatePool);
+            if (request == null)
+            {
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(ApiKey))
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Must be logged in to perform this operation."
+                };
+                return false;
+            }
+            if (PoolId <= 0)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: PoolId must be positive"
+                };
+                return false;
+            }
+            if (Name == null && Description == null && Category == null && PostIds == null && IsActive == null)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: At least one pool field must be supplied"
+                };
+                return false;
+            }
+            if (Name != null && string.IsNullOrWhiteSpace(Name))
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Name cannot be blank"
+                };
+                return false;
+            }
+            if (Category != null && Category != "series" && Category != "collection")
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Category must be series or collection"
+                };
+                return false;
+            }
+            if (PostIds != null && Array.Exists(PostIds, id => id <= 0))
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: PostIds must contain positive post IDs"
+                };
+                return false;
+            }
+            HostClient = RestClientFactory("https://e621.net/pools/" + PoolId + ".json");
+            if (Name != null)
+            {
+                request.AddQueryParameter("pool[name]", Name);
+            }
+            if (Description != null)
+            {
+                request.AddQueryParameter("pool[description]", Description);
+            }
+            if (Category != null)
+            {
+                request.AddQueryParameter("pool[category]", Category);
+            }
+            if (PostIds != null)
+            {
+                request.AddQueryParameter("pool[post_ids_string]", string.Join(" ", PostIds));
+            }
+            if (IsActive != null)
+            {
+                request.AddQueryParameter("pool[is_active]", IsActive.Value ? "true" : "false");
+            }
+            RestResponse response = await HostClient.ExecuteAsync(request);
+            if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Created && response.StatusCode != HttpStatusCode.Accepted && response.StatusCode != HttpStatusCode.NoContent)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = (StatusCode)response.StatusCode,
+                    Message = response.StatusDescription
+                };
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Updates a comment body. Sticky and hidden flags require the corresponding server-side staff permissions.
+        /// </summary>
+        public async Task<bool> UpdateComment(int CommentId, string Body, bool? IsSticky = null, bool? IsHidden = null)
+        {
+            RestRequest request = await CreateNewRestRequest(E6RequestType.UpdateComment);
+            if (request == null)
+            {
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(ApiKey))
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Must be logged in to perform this operation."
+                };
+                return false;
+            }
+            if (CommentId <= 0)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: CommentId must be positive"
+                };
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(Body))
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: Body is required"
+                };
+                return false;
+            }
+            HostClient = RestClientFactory("https://e621.net/comments/" + CommentId + ".json");
+            request.AddQueryParameter("comment[body]", Body);
+            if (IsSticky != null)
+            {
+                request.AddQueryParameter("comment[is_sticky]", IsSticky.Value ? "true" : "false");
+            }
+            if (IsHidden != null)
+            {
+                request.AddQueryParameter("comment[is_hidden]", IsHidden.Value ? "true" : "false");
+            }
+            RestResponse response = await HostClient.ExecuteAsync(request);
+            if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Created && response.StatusCode != HttpStatusCode.Accepted && response.StatusCode != HttpStatusCode.NoContent)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = (StatusCode)response.StatusCode,
+                    Message = response.StatusDescription
+                };
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Hides a comment if the server permits the current user to hide it.
+        /// </summary>
+        public async Task<bool> HideComment(int CommentId)
+        {
+            RestRequest request = await CreateNewRestRequest(E6RequestType.HideComment);
+            if (request == null)
+            {
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(ApiKey))
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Must be logged in to perform this operation."
+                };
+                return false;
+            }
+            if (CommentId <= 0)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: CommentId must be positive"
+                };
+                return false;
+            }
+            HostClient = RestClientFactory("https://e621.net/comments/" + CommentId + "/hide.json");
+            RestResponse response = await HostClient.ExecuteAsync(request);
+            if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Created && response.StatusCode != HttpStatusCode.Accepted && response.StatusCode != HttpStatusCode.NoContent)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = (StatusCode)response.StatusCode,
+                    Message = response.StatusDescription
+                };
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Unhides a comment. The server requires moderator permissions.
+        /// </summary>
+        public async Task<bool> UnhideComment(int CommentId)
+        {
+            RestRequest request = await CreateNewRestRequest(E6RequestType.UnhideComment);
+            if (request == null)
+            {
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(ApiKey))
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Must be logged in to perform this operation."
+                };
+                return false;
+            }
+            if (CommentId <= 0)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = StatusCode.MissingOrInvalidParameter,
+                    Message = "Invalid Parameter: CommentId must be positive"
+                };
+                return false;
+            }
+            HostClient = RestClientFactory("https://e621.net/comments/" + CommentId + "/unhide.json");
+            RestResponse response = await HostClient.ExecuteAsync(request);
+            if (response.StatusCode != HttpStatusCode.OK && response.StatusCode != HttpStatusCode.Created && response.StatusCode != HttpStatusCode.Accepted && response.StatusCode != HttpStatusCode.NoContent)
+            {
+                LastError = new ErrorDetails
+                {
+                    ResponseCode = (StatusCode)response.StatusCode,
+                    Message = response.StatusDescription
+                };
+                return false;
+            }
+            return true;
+        }
+
     }
 }

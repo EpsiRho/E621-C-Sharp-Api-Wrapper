@@ -1,45 +1,59 @@
 # E621 API C# Wrapper
 
-Currently in development NuGet package for interacting with the e621 API.
+NuGet package for interacting with the e621 API.
 
 ## Features
 
 ### Posts
 
-- [ ] Create Posts
+- [x] Create Posts (uploads by URL)
 - [x] Vote on Posts
 - [x] Favorite Posts
-- [ ] Flag Posts
+- [x] Flag Posts
 - [x] List Posts
-- [ ] List Flagged posts
-- [ ] Update Posts
+- [x] List flag records and flagged posts
+- [x] Update Posts
 
 ### Tags
 
 - [x] List Tags
-- [ ] List Tag Aliases
+- [x] List Tag Aliases
 
 ### Notes
 
-- [ ] Create Notes
-- [ ] List Notes
-- [ ] Delete Notes
-- [ ] Update Notes
-- [ ] Revert Notes
+- [x] Create Notes
+- [x] List Notes
+- [x] Delete Notes
+- [x] Update Notes
+- [x] Revert Notes
+- [x] List Note Versions
 
 ### Pools
 
-- [ ] Create Pool
+- [x] Create Pool
 - [x] List Pools
-- [ ] Update Pools
-- [ ] Revert Pools
+- [x] Update Pools
+- [x] Revert Pools
+- [x] List Pool Versions
 
 ### Comments
 
-- [ ] Create Comments
+- [x] Create Comments
 - [x] List Comments
-- [ ] Update Comments
-- [ ] Revert Comments
+- [x] Update Comments
+- [x] Hide and Unhide Comments
+- [x] Delete Comments (administrator only, works in theory)
 
 ### Users
 - [x] Search Users
+
+### Other implemented functions
+
+- [x] Tag autocomplete
+- [x] Popular posts
+- [x] Wiki and set searches
+- [x] List and create blips
+- [x] Authentication check and blacklist updates
+
+See [Documentation.md](Documentation.md) for signatures, return values, and the
+current endpoint mappings. Posts now use the V2 JSON schema that will be default by end of year.

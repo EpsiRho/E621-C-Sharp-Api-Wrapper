@@ -29,6 +29,10 @@ namespace e6API
         SearchWiki,
         ListSets,
         ListBlips,
-        CreateBlip
+        CreateBlip,
+        ListNoteVersions,
+        ListPoolVersions,
+        HideComment,
+        UnhideComment
     }
 }

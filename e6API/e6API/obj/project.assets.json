@@ -627,7 +627,7 @@
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
-    "version": "0.7.9-v2-preview.1",
+    "version": "1.0.0",
     "restore": {
       "projectUniqueName": "D:\\Documents\\GitHub\\E621-C-Sharp-Api-Wrapper\\e6API\\e6API\\e6API.csproj",
       "projectName": "e6API_EpsiRho",

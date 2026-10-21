@@ -4,16 +4,19 @@
     <id>e6API_EpsiRho</id>
     <version>1.0.0</version>
     <authors>Epsi</authors>
-    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <license type="file">LICENSE.md</license>
+    <licenseUrl>https://aka.ms/deprecateLicenseUrl</licenseUrl>
     <description>A wrapper for the e621 API.</description>
+    <repository type="git" commit="05c216c55a3003b0e0c51233e2d399324f084d43" />
     <dependencies>
       <group targetFramework=".NETStandard2.0">
-        <dependency id="Newtonsoft.Json" version="12.0.3" exclude="Build,Analyzers" />
-        <dependency id="RestSharp" version="106.11.7" exclude="Build,Analyzers" />
+        <dependency id="Newtonsoft.Json" version="13.0.1" exclude="Build,Analyzers" />
+        <dependency id="RestSharp" version="107.3.0" exclude="Build,Analyzers" />
       </group>
     </dependencies>
   </metadata>
   <files>
-    <file src="C:\Users\jhset\Documents\GitHub\E621-C-Sharp-Api-Wrapper\e6API\e6API\bin\Release\netstandard2.0\e6API.dll" target="lib\netstandard2.0\e6API.dll" />
+    <file src="D:\Documents\GitHub\E621-C-Sharp-Api-Wrapper\e6API\e6API\bin\Release\netstandard2.0\e6API.dll" target="lib\netstandard2.0\e6API.dll" />
+    <file src="D:\Documents\GitHub\E621-C-Sharp-Api-Wrapper\LICENSE.md" target="LICENSE.md" />
   </files>
 </package>

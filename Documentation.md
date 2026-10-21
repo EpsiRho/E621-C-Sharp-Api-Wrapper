@@ -2,7 +2,8 @@
 
 # RequestHost
 
-This is the main class you need. Make sure before you use any function to define the UserAgent, as it is required to use the e621 API. Proper user agent form is `"<Application Name>/<Version> (Your Name)"`.
+This is the main class you need. Make sure before you use any function to define the UserAgent, as it is required to use the e621 API. 
+Proper user agent format is `"<Application Name>/<Version> (Your Name)"`.
 
 # RequestHost: Variables
 
@@ -42,17 +43,19 @@ Gets a list of posts.
 
 *Returns*: A list of the Post class
 
-## VotePost(int PostId, int Vote)
+## SetVote(int PostId, int Vote, bool Toggle = false)
 
 Votes on a post
 
 * `PostId`: The id of the post to vote on.
 
-* `Vote`: The int to detonated if it should up vote or down vote. 1 for Up, -1 for Down.
+* `Vote`: 1 for an upvote, -1 for a downvote.
+
+* `Toggle`: When true, sends `no_unvote=true` so a repeated vote does not remove the vote.
 
 *Returns*: The response from the server in the vote class. Contains success, total score, and the user's score.
 
-## SearchTags(string Search, TagCategory Category, SortOrder Sort, bool HideEmpty, int Limit, int Page)
+## GetTags(string Search, int Limit = 75, int Page = 1, TagCategory Category = TagCategory.All, TagsSortOrder Sort = TagsSortOrder.date, bool HideEmpty = false)
 
 Search for tags in the database.
 
@@ -70,7 +73,7 @@ Search for tags in the database.
 
 *Returns*: A list of a class 'Tag' that holds info on each resulting tag
 
-## SearchTags(string Search, char PaginationChar, int PostId, TagCategory Category = TagCategory.All, SortOrder Sort = SortOrder.date, bool HideEmpty = false, int Limit = 75)
+## GetTags(string Search, char PaginationChar, int PostId, int Limit = 75, TagCategory Category = TagCategory.All, TagsSortOrder Sort = TagsSortOrder.date, bool HideEmpty = false)
 
 Search for tags in the database.
 
@@ -142,15 +145,148 @@ A class that holds details on a post. Contains multiple sub-classes.
 
 ## Post sub-classes
 
-* Relationships
+* `Files`: `Meta`, `Original`, `Preview`, and `Sample`
+* `Stats`: `Score`, favorite state/count, vote, comment count, and hotness
+* `Flags`, `Has`, and `Relationships`
 
-* Flags
-* Tags
-* Score
-* Sample
-* Alternates **(Note: I have never seen this be used at the class is there to prevent json deserialization errors)**
-* Preview
-* File
+Post tags are a flat string array. `GetPosts`, `GetFlaggedPosts`, and `GetPopularPosts` request and deserialize post arrays.
 
+
+## Posts and flags
+
+```csharp
+Task<bool> FlagPost(int PostId, string ReasonName,
+    int? ParentId = null, string Note = null);
+
+Task<List<PostFlag>> GetPostFlags(int? PostId = null,
+    int Limit = 75, int Page = 1, string Reason = null,
+    bool? IsResolved = null, string Type = null,
+    int? CreatorId = null, string CreatorName = null, string PostTags = null);
+
+Task<List<Post>> GetFlaggedPosts(string Tags = "", int Limit = 75, int Page = 1);
+Task<List<Post>> GetFlaggedPosts(string Tags, char PaginationChar,
+    int PostId, int Limit = 75);
+
+Task<bool> UpdatePost(int PostId, string Tags = null, string Rating = null,
+    string Sources = null, string Description = null, int? ParentId = null,
+    string EditReason = null, string TagDiff = null, string SourceDiff = null,
+    string OldTags = null, string OldRating = null, string OldSources = null,
+    string OldDescription = null, int? OldParentId = null);
+```
+
+`FlagPost` sends `post_flag[reason_name]`, using a reason name from the server's
+flag form. Some reasons also require `ParentId` or an explanatory `Note`; the
+server validates those requirements. The parent must differ from the flagged
+post. `GetPostFlags` returns flag records, whose `creator_id` and `note` may be
+hidden by the server. Its `Type` filter is `"flag"` or `"deletion"`.
+
+`GetFlaggedPosts` adds `status:flagged` to the normal post query. Its cursor
+overload accepts `a` or `b`, as with `GetPosts`.
+
+`UpdatePost` sends only supplied fields. Ratings are `s`, `q`, or `e`; pass
+`ParentId: 0` to clear a parent. `TagDiff` and `SourceDiff` map to the server's
+diff fields, and `Old*` fields allow its edit-conflict handling. When a tag or
+source diff is present, the server gives it precedence over the full field.
+At least one editable field must be supplied.
+
+```csharp
+await host.UpdatePost(42, Description: "Corrected description",
+    OldDescription: "Previous description", EditReason: "Fix description");
+```
+
+## Tag aliases
+
+```csharp
+Task<List<TagAlias>> GetTagAliases(string Search = "", int Limit = 75,
+    int Page = 1, string Status = null,
+    string Antecedent = null, string Consequent = null);
+
+Task<List<TagAlias>> GetTagAliases(string Search, char PaginationChar,
+    int PostId, int Limit = 75, string Status = null,
+    string Antecedent = null, string Consequent = null);
+```
+
+`Search` matches either alias name and accepts wildcard matching. `Antecedent`
+and `Consequent` map to the corresponding exact-name search filters. `Status`
+is passed to the server, for example `"active"`. In the cursor overload,
+`PostId` is the **alias record ID**, following the existing `GetTags` parameter
+convention. Results are `TagAlias` objects rather than `Tag` objects.
+
+## Notes
+
+```csharp
+Task<List<Note>> GetNotes(int? PostId = null, int Limit = 75, int Page = 1,
+    string Body = null, bool? IsActive = null, int? CreatorId = null,
+    string CreatorName = null, string PostTags = null);
+
+Task<int> CreateNote(int PostId, int X, int Y, int Width, int Height, string Body);
+Task<bool> UpdateNote(int NoteId, string Body = null, int? X = null,
+    int? Y = null, int? Width = null, int? Height = null);
+Task<bool> DeleteNote(int NoteId);
+Task<List<NoteVersion>> GetNoteVersions(int NoteId, int Limit = 75, int Page = 1);
+Task<bool> RevertNote(int NoteId, int VersionId);
+```
+
+Coordinates are nonnegative and dimensions must be positive. The server also
+checks that the rectangle fits inside the post. Note bodies cannot be blank.
+Creation handles the server's response with an encoded JSON string in `note`,
+as well as an object in that field or a direct note object. Deletion marks a
+note inactive. Reversion can restore a version's text, rectangle, and active
+state; pass the version record's `id`, not its sequential `version` value.
+
+## Pools
+
+```csharp
+Task<int> CreatePool(string Name, string Description = "",
+    string Category = "series", int[] PostIds = null, bool IsActive = true);
+Task<bool> UpdatePool(int PoolId, string Name = null, string Description = null,
+    string Category = null, int[] PostIds = null, bool? IsActive = null);
+Task<List<PoolVersion>> GetPoolVersions(int PoolId, int Limit = 75, int Page = 1);
+Task<bool> RevertPool(int PoolId, long VersionId);
+```
+
+Categories are `"series"` or `"collection"`. Post IDs are sent in the supplied
+order through `pool[post_ids_string]`. A null `PostIds` preserves existing posts;
+an empty array removes all posts from the pool. Revision IDs are 64-bit values.
+Pass the revision record's `id` to `RevertPool`.
+
+## Comments
+
+```csharp
+Task<bool> UpdateComment(int CommentId, string Body,
+    bool? IsSticky = null, bool? IsHidden = null);
+Task<bool> HideComment(int CommentId);
+Task<bool> UnhideComment(int CommentId);
+Task<bool> DeleteComment(int CommentId);
+```
+
+Creation already exists as `CommentOnPost(int PostId, string body)`. Editing
+requires a nonblank body. Optional sticky and hidden flags require staff
+permissions. Hiding requires ownership or appropriate staff permissions;
+unhiding requires moderator permissions. Permanent deletion requires an
+administrator. Permission failures return `false` and populate `LastError`.
+
+There is **no comment-revert endpoint** in the current server routes. To restore
+known previous text, use `UpdateComment`. Comment edit histories are restricted
+to moderators and are not a public version/revert API like notes and pools.
+
+## Endpoint mapping
+
+| Method | HTTP route |
+| --- | --- |
+| `FlagPost` / `GetPostFlags` | POST / GET `/post_flags.json` |
+| `GetFlaggedPosts` | GET `/posts.json?v2=true`, with `status:flagged` |
+| `UpdatePost` | PATCH `/posts/{id}.json?v2=true` |
+| `GetTagAliases` | GET `/tag_aliases.json` |
+| `CreateNote` / `GetNotes` | POST / GET `/notes.json` |
+| `UpdateNote` / `DeleteNote` | PUT / DELETE `/notes/{id}.json` |
+| `GetNoteVersions` | GET `/note_versions.json` |
+| `RevertNote` | PUT `/notes/{id}/revert.json`, with `version_id` |
+| `CreatePool` | POST `/pools.json` |
+| `UpdatePool` | PUT `/pools/{id}.json` |
+| `GetPoolVersions` | GET `/pool_versions.json` |
+| `RevertPool` | PUT `/pools/{id}/revert.json`, with `version_id` |
+| `UpdateComment` / `DeleteComment` | PUT / DELETE `/comments/{id}.json` |
+| `HideComment` / `UnhideComment` | POST `/comments/{id}/hide.json` / `/comments/{id}/unhide.json` |
 
 

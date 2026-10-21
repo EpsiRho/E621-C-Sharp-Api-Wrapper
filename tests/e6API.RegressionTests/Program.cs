@@ -5,7 +5,7 @@ using System.Text;
 using e6API;
 using Newtonsoft.Json;
 using RestSharp;
-using V2Post = e6API.JSON_Classes.Post;
+
 
 const string PostJson = """
 [{"id":42,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z",
@@ -85,7 +85,7 @@ await Run("Recovered authentication and blacklist update", async () =>
     using var http = new MemoryTransport("[]");
     var host = http.Host();
     Check(await host.TryAuthenticate("user", "test-key"), "authentication success");
-    http.Last.QueryIs("login", "user"); http.Last.QueryIs("api_key", "test-key"); http.Last.QueryIs("v2", "true");
+    http.Last.QueryIs("login", "user"); http.Last.QueryIs("api_key", "test-key");
     http.Json = "{\"reason\":\"AuthenticationFailure\"}";
     Check(!await host.TryAuthenticate("user", "bad-key"), "authentication rejection");
     http.Json = ""; http.Status = HttpStatusCode.NoContent;
@@ -122,41 +122,40 @@ await Run("Distinct enum values route favorites and comments correctly", async (
     Check(http.Last.Method == HttpMethod.Delete && http.Last.Uri.AbsolutePath == "/favorites/42.json", "unfavorite route");
 });
 
-await Run("VotePost compatibility and SetVote no_unvote behavior", async () =>
+await Run("SetVote no_unvote behavior", async () =>
 {
     using var http = new MemoryTransport("{\"success\":true,\"our_score\":1}");
     var host = http.Host(authenticated: true);
-    Check((await host.VotePost(42, 1)).our_score == 1, "legacy vote result");
+    Check((await host.SetVote(42, 1)).our_score == 1, "legacy vote result");
     http.Last.QueryIs("score", "1"); http.Last.QueryIs("no_unvote", "false");
     await host.SetVote(42, -1, true);
     http.Last.QueryIs("score", "-1"); http.Last.QueryIs("no_unvote", "true");
     Check(http.Last.Method == HttpMethod.Post && http.Last.Uri.AbsolutePath == "/posts/42/votes.json", "vote route");
 });
 
-await Run("Recovered tag/comment/user/pool calls and renamed aliases", async () =>
+await Run("Current tag/comment/user/pool API", async () =>
 {
     using var http = new MemoryTransport("[{\"id\":7,\"name\":\"sample\"}]");
     var host = http.Host();
-    Check((await host.SearchTags("sam*", 20, 2))[0].id == 7, "SearchTags");
     Check((await host.GetTags("sam*", 20, 2))[0].id == 7, "GetTags");
     http.Last.QueryIs("page", "2");
-    await host.SearchTags("sam*", 'b', 20); http.Last.QueryIs("page", "b20");
+    await host.GetTags("sam*", 'b', 20); http.Last.QueryIs("page", "b20");
     await host.GetTags("sam*", 'a', 20); http.Last.QueryIs("page", "a20");
-    await host.SearchComments("hello"); await host.FindComments("hello");
+    await host.SearchComments("hello");
     http.Last.QueryIs("search[body_matches]", "hello");
     await host.GetPostComments(42); http.Last.QueryIs("search[post_id]", "42");
     await host.GetUserComments("user"); http.Last.QueryIs("search[creator_name]", "user");
     await host.GetUserComments(7); http.Last.QueryIs("search[creator_id]", "7");
-    await host.SearchUsers("user"); await host.GetUsers("user");
+    await host.SearchUsers("user");
     http.Last.QueryIs("search[name_matches]", "user");
     await host.SearchPoolNames("pool", 20, 3); http.Last.QueryIs("page", "3");
-    await host.GetPoolNames("pool", 20, PoolsSortOrder.name); http.Last.QueryIs("page", "1");
-    await host.GetPoolNames("pool", 20, 4); http.Last.QueryIs("page", "4");
-    await host.SearchPoolDescriptions("desc"); await host.GetPoolDescriptions("desc");
+    await host.SearchPoolNames("pool", 20, 1, PoolsSortOrder.name); http.Last.QueryIs("page", "1");
+    await host.SearchPoolNames("pool", 20, 4); http.Last.QueryIs("page", "4");
+    await host.SearchPoolDescriptions("desc");
     http.Last.QueryIs("search[description_matches]", "desc");
-    await host.SearchPoolUserPools("user"); await host.GetUserPools("user");
+    await host.SearchPoolUserPools("user");
     http.Last.QueryIs("search[creator_name]", "user");
-    await host.SearchPoolUserPools(7); await host.GetUserPools(7);
+    await host.SearchPoolUserPools(7);
     http.Last.QueryIs("search[creator_id]", "7");
     Check((await host.GetPoolInfo(7)).id == 7, "pool info");
 });
@@ -179,7 +178,7 @@ await Run("Invalid configuration, limits and missing authentication avoid HTTP",
     Check(http.Requests.Count == 0, "invalid calls must not send requests");
     host.UserAgent = null!;
     Check(await host.GetPosts("") == null && host.LastError.ResponseCode == StatusCode.MissingOrInvalidParameter, "missing User-Agent");
-    Check(await host.VotePost(42, 1) == null, "missing User-Agent vote");
+    Check(await host.SetVote(42, 1) == null, "missing User-Agent vote");
     host.UserAgent = "RecoveryTests/1.0"; host.Username = "user";
     Check(await host.SearchSets("sample") == null, "partial credentials");
     Check(http.Requests.Count == 0, "configuration failures must not send requests");
@@ -199,16 +198,17 @@ await Run("HTTP and JSON failures preserve LastError", async () =>
     Check(await host.GetPoolInfo(42) == null && host.LastError.ResponseCode == StatusCode.NotFound, "pool not found");
 });
 
-await Run("Legacy models remain available for existing consumers", () =>
+await Run("V2 and recovered creation models deserialize", () =>
 {
-    var old = JsonConvert.DeserializeObject<PostsHolder>("{\"posts\":[{\"id\":1,\"file\":{\"url\":\"old.jpg\"},\"tags\":{\"general\":[\"sample\"]}}]}");
-    Check(old!.posts[0].file.url == "old.jpg" && old.posts[0].tags.general[0] == "sample", "legacy model shape");
+    var posts = JsonConvert.DeserializeObject<List<Post>>(PostJson);
+    Check(posts![0].files.original.width == 800, "V2 model shape");
     Check(JsonConvert.DeserializeObject<CreatePostReturn>("{\"post_id\":42}")!.post_id == 42, "recovered upload model");
     return Task.CompletedTask;
 });
 
+await ApiCompletionChecks.Run(Run, PostJson);
 if (args.Length > 0)
-    await Run("Public API parity with the original 0.7.8 DLL", () =>
+    await Run("Existing public API preserved against the supplied baseline DLL", () =>
     {
         var context = new AssemblyLoadContext("recovery-baseline", isCollectible: true);
         try
@@ -229,8 +229,6 @@ if (args.Length > 0)
                     if (oldMember is MethodInfo oldMethod && newMember is MethodInfo newMethod)
                     {
                         var expectedReturn = TypeName(oldMethod.ReturnType);
-                        if (oldType.FullName == "e6API.RequestHost" && (oldMethod.Name == "GetPosts" || oldMethod.Name == "GetPopularPosts"))
-                            expectedReturn = expectedReturn.Replace("e6API.Post", "e6API.JSON_Classes.Post");
                         Check(TypeName(newMethod.ReturnType) == expectedReturn, $"return type {signature}");
                     }
                     if (oldMember is FieldInfo { IsLiteral: true } oldField && newMember is FieldInfo newField)
@@ -245,7 +243,7 @@ if (args.Length > 0)
                         }
                 }
             }
-            Console.WriteLine($"  Compared {types.Length} public types; only the three post methods intentionally return the V2 model.");
+            Console.WriteLine($"  Compared all members of {types.Length} existing public types.");
         }
         finally { context.Unload(); }
         return Task.CompletedTask;

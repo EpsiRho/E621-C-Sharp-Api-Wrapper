@@ -8,3 +8,14 @@ C:\Users\jhset\Documents\GitHub\E621-C-Sharp-Api-Wrapper\e6API\e6API\obj\Release
 C:\Users\jhset\Documents\GitHub\E621-C-Sharp-Api-Wrapper\e6API\e6API\obj\Release\netstandard2.0\e6API.pdb
 C:\Users\jhset\Documents\GitHub\E621-C-Sharp-Api-Wrapper\e6API\e6API\obj\Release\netstandard2.0\e6API.csproj.AssemblyReference.cache
 C:\Users\jhset\Documents\GitHub\E621-C-Sharp-Api-Wrapper\e6API\e6API\obj\Release\netstandard2.0\e6API.GeneratedMSBuildEditorConfig.editorconfig
+D:\Documents\GitHub\E621-C-Sharp-Api-Wrapper\e6API\e6API\bin\Release\netstandard2.0\e6API.deps.json
+D:\Documents\GitHub\E621-C-Sharp-Api-Wrapper\e6API\e6API\bin\Release\netstandard2.0\e6API.dll
+D:\Documents\GitHub\E621-C-Sharp-Api-Wrapper\e6API\e6API\bin\Release\netstandard2.0\e6API.pdb
+D:\Documents\GitHub\E621-C-Sharp-Api-Wrapper\e6API\e6API\obj\Release\netstandard2.0\e6API.csproj.AssemblyReference.cache
+D:\Documents\GitHub\E621-C-Sharp-Api-Wrapper\e6API\e6API\obj\Release\netstandard2.0\e6API.GeneratedMSBuildEditorConfig.editorconfig
+D:\Documents\GitHub\E621-C-Sharp-Api-Wrapper\e6API\e6API\obj\Release\netstandard2.0\e6API.AssemblyInfoInputs.cache
+D:\Documents\GitHub\E621-C-Sharp-Api-Wrapper\e6API\e6API\obj\Release\netstandard2.0\e6API.AssemblyInfo.cs
+D:\Documents\GitHub\E621-C-Sharp-Api-Wrapper\e6API\e6API\obj\Release\netstandard2.0\e6API.csproj.CoreCompileInputs.cache
+D:\Documents\GitHub\E621-C-Sharp-Api-Wrapper\e6API\e6API\obj\Release\netstandard2.0\e6API.sourcelink.json
+D:\Documents\GitHub\E621-C-Sharp-Api-Wrapper\e6API\e6API\obj\Release\netstandard2.0\e6API.dll
+D:\Documents\GitHub\E621-C-Sharp-Api-Wrapper\e6API\e6API\obj\Release\netstandard2.0\e6API.pdb
